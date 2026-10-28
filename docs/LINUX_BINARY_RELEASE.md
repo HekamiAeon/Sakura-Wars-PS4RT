@@ -80,9 +80,9 @@ After installing DLC from **Game > Install DLC...** in the overlay, save your ga
 
 ## Requirements and limitations
 
-- Native **x86-64/AMD64 Linux**, with **glibc 2.35+** and **Python 3**. ARM64 and CPU translators such as FEX or Box64 are not supported or validated.
+- Native **x86-64/AMD64 Linux**, with **glibc 2.35+** and **Python 3**. ARM64 and CPU translators such as FEX or Box64 are not supported or validated, they might or might not work depending on the device.
 - Working Vulkan 1.3-capable graphics driver/loader and compatible desktop display/input environment. FSR 4 depends on additional compatible device features and falls back to other supported options when unavailable.
-- Fedora Linux with AMD/RADV graphics has been gameplay-tested. Other Linux distributions and GPUs, including Steam Deck / SteamOS, are not comprehensively validated.
+- Fedora Linux with AMD/RADV/NVIDIA graphics has been gameplay-tested.
 - The portable bundles its audited application libraries, including SDL3, FFmpeg and Crypto++. **Do not install separate versions or set `LD_LIBRARY_PATH` merely to run the portable.**
 
-This is an **experimental, title-specific** PS4 native compatibility runtime, not a general PS4 emulator. Testing has reached Chapters 1–3; the full game has **not** been verified end-to-end. For developer instructions, see [Linux distribution guide](DISTRIBUTING_LINUX.md), [Running on Linux](RUNNING_LINUX.md), and [`packaging/linux/README.md`](../packaging/linux/README.md).
+This is an **experimental, title-specific** PS4 native compatibility runtime, not a general PS4 emulator. Testing has reached Chapters 1–3; the full game has **not** been verified end-to-end as of 10/28/2026. For developer instructions, see [Linux distribution guide](DISTRIBUTING_LINUX.md), [Running on Linux](RUNNING_LINUX.md), and [`packaging/linux/README.md`](../packaging/linux/README.md).
