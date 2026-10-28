@@ -1,0 +1,272 @@
+# ps4rt GPU library: shadPS4 video core + shader recompiler + Gnm/VideoOut
+# drivers, adapted to the PS4RT runtime through shims in shim/.
+cmake_minimum_required(VERSION 3.24)
+project(ps4rtgpu LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
+endif()
+# Frame pointers keep the loader's thread dumps (watchdog, SIGUSR2 sampling) walkable.
+add_compile_options(-fno-omit-frame-pointer)
+
+# ps4rt: link-time optimization (PS4RT_LTO, default on) and profile-guided optimization
+# (PS4RT_PGO: off, generate = instrumented build writing into PS4RT_PGO_DIR, use = build with that
+# profile). Covers ps4rtgpu and the static libraries linked into it. No -march: the same build
+# runs on the Steam Deck.
+option(PS4RT_LTO "Link-time optimization of ps4rtgpu" ON)
+set(PS4RT_PGO "off" CACHE STRING "Profile-guided optimization: off, generate, use")
+set(PS4RT_PGO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../pgo" CACHE PATH "Profile directory")
+if (PS4RT_LTO)
+    include(CheckIPOSupported)
+    check_ipo_supported(RESULT ps4rt_ipo_ok OUTPUT ps4rt_ipo_error)
+    if (ps4rt_ipo_ok)
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+    else()
+        message(WARNING "LTO unavailable: ${ps4rt_ipo_error}")
+    endif()
+endif()
+if (PS4RT_PGO STREQUAL "generate")
+    # Atomic counters: the GPU, recording, preparation and copy threads run the same code.
+    add_compile_options(-fprofile-generate=${PS4RT_PGO_DIR} -fprofile-update=atomic)
+    add_link_options(-fprofile-generate=${PS4RT_PGO_DIR})
+    add_compile_definitions(PS4RT_PGO_GENERATE)
+elseif (PS4RT_PGO STREQUAL "use")
+    # Partial training keeps unprofiled code optimized normally; counters from concurrent
+    # threads can be slightly inconsistent (correction). Functions changed since the profile
+    # (or built differently for it, ps4rtgpu_init) are compiled without it.
+    add_compile_options(-fprofile-use=${PS4RT_PGO_DIR} -fprofile-partial-training
+                        -fprofile-correction -Wno-missing-profile -Wno-coverage-mismatch)
+endif()
+
+find_package(Vulkan REQUIRED)
+find_package(fmt REQUIRED)
+find_package(Boost REQUIRED)
+# ps4rt (Windows): MSYS2 has no magic_enum/miniz packages; the submodules are used instead.
+find_package(magic_enum QUIET)
+if (NOT magic_enum_FOUND)
+    add_library(magic_enum INTERFACE)
+    add_library(magic_enum::magic_enum ALIAS magic_enum)
+    target_include_directories(magic_enum INTERFACE third_party/magic_enum/include
+                                                    third_party/magic_enum/include/magic_enum)
+endif()
+find_package(tsl-robin-map REQUIRED)
+find_package(VulkanMemoryAllocator CONFIG QUIET)
+if (NOT VulkanMemoryAllocator_FOUND)
+    # MSYS2 ships the header (include/vma/vk_mem_alloc.h) without a CMake package.
+    find_path(VMA_INCLUDE_DIR vk_mem_alloc.h PATH_SUFFIXES vma REQUIRED)
+    add_library(VulkanMemoryAllocator INTERFACE)
+    add_library(GPUOpen::VulkanMemoryAllocator ALIAS VulkanMemoryAllocator)
+    target_include_directories(VulkanMemoryAllocator INTERFACE ${VMA_INCLUDE_DIR})
+endif()
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(XXHASH REQUIRED IMPORTED_TARGET libxxhash)
+pkg_check_modules(SDL3 REQUIRED IMPORTED_TARGET sdl3)
+if (NOT WIN32)
+    pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
+endif()
+find_package(miniz QUIET)
+if (NOT miniz_FOUND)
+    set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(BUILD_FUZZERS OFF CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+    add_subdirectory(third_party/miniz EXCLUDE_FROM_ALL)
+    unset(CMAKE_POLICY_VERSION_MINIMUM)
+    add_library(miniz::miniz ALIAS miniz)
+endif()
+find_package(Zydis CONFIG QUIET)
+if (NOT TARGET Zydis::Zydis)
+    # Fedora's zydis-devel supplies pkg-config metadata, without a CMake config.
+    pkg_check_modules(ZYDIS REQUIRED IMPORTED_TARGET zydis)
+    add_library(Zydis::Zydis ALIAS PkgConfig::ZYDIS)
+endif()
+find_program(GLSLANG_COMPILER NAMES glslang glslangValidator REQUIRED)
+
+set(SIRIT_USE_SYSTEM_SPIRV_HEADERS OFF CACHE BOOL "" FORCE)
+add_subdirectory(third_party/sirit EXCLUDE_FROM_ALL)
+
+# ps4rt: FSR 3.1 temporal upscaling / frame generation, native Vulkan (MIT, FireBurn/FSR-Vulkan).
+set(FFX_VK_PORTABLE_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(FFX_VK_PORTABLE_BUILD_PROBE OFF CACHE BOOL "" FORCE)
+add_subdirectory(third_party/fsr-vulkan EXCLUDE_FROM_ALL)
+
+# Host shaders -> headers (same scheme as shadPS4's host_shaders/CMakeLists.txt).
+set(SHADER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/shadps4/video_core/host_shaders)
+set(SHADER_INCLUDE ${CMAKE_CURRENT_BINARY_DIR}/include)
+set(SHADER_DIR ${SHADER_INCLUDE}/video_core/host_shaders)
+set(SHADER_HEADERS "")
+function(add_host_shader FILENAME SHADER_NAME)
+    set(OUT ${SHADER_DIR}/${SHADER_NAME}.h)
+    string(TOUPPER ${SHADER_NAME} SYMBOL)
+    set(DEFINES ${ARGN})
+    list(TRANSFORM DEFINES PREPEND "-D")
+    add_custom_command(OUTPUT ${OUT}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_DIR}
+        COMMAND ${GLSLANG_COMPILER} --target-env vulkan1.3 -o ${OUT} --vn ${SYMBOL} ${DEFINES} ${SHADER_SRC}/${FILENAME}
+        COMMAND ${CMAKE_COMMAND} "-DHEADER_FILE=${OUT}" -P ${SHADER_SRC}/AddShaderHeaderInclude.cmake
+        DEPENDS ${SHADER_SRC}/${FILENAME} VERBATIM)
+    set(SHADER_HEADERS ${SHADER_HEADERS} ${OUT} PARENT_SCOPE)
+endfunction()
+add_host_shader(color_to_ms_depth.frag color_to_ms_depth_frag)
+add_host_shader(color_to_ms_depth.frag color_to_ms_depth_fallback_frag SAMPLE_FALLBACK=1)
+add_host_shader(ms_image_blit.frag ms_image_blit_frag)
+add_host_shader(ms_image_blit.frag ms_image_blit_msaa_frag SRC_MSAA=1)
+add_host_shader(fault_buffer_process.comp fault_buffer_process_comp)
+add_host_shader(fs_tri.vert fs_tri_vert)
+add_host_shader(fsr.comp fsr_easu_comp SAMPLE_EASU=1)
+add_host_shader(fsr.comp fsr_rcas_comp SAMPLE_RCAS=1)
+add_host_shader(spatial_aa.comp spatial_aa_comp)
+add_host_shader(post_process.frag post_process_frag)
+add_host_shader(camera_motion.comp camera_motion_comp)
+add_host_shader(transition_alpha.comp transition_alpha_comp)
+add_host_shader(upscale_merge.comp upscale_merge_comp)
+add_host_shader(upscale_merge.comp upscale_merge_unorm_comp SCENE_UNORM=1)
+add_host_shader(upscale_reactive.comp upscale_reactive_comp)
+add_host_shader(taa.comp taa_comp)
+add_host_shader(taa_sharpen.comp taa_sharpen_comp)
+add_host_shader(taa_sharpen.comp taa_sharpen_ldr_comp LDR_OUTPUT=1)
+add_host_shader(buffer_multi_copy.comp buffer_multi_copy_comp)
+add_host_shader(depth_resample.frag depth_resample_frag)
+add_host_shader(depth_resample.frag depth_stencil_resample_frag HAS_STENCIL=1)
+add_host_shader(depth_resample.frag depth_stencil_bits_frag STENCIL_BITS=1)
+foreach(BPP IN ITEMS 8 16 32 64 96 128)
+    add_host_shader(tiling.comp tiling_micro_${BPP}_comp BITS_PER_PIXEL=${BPP} IS_MACRO_TILED=0)
+    add_host_shader(tiling.comp tiling_macro_${BPP}_comp BITS_PER_PIXEL=${BPP} IS_MACRO_TILED=1)
+endforeach()
+add_custom_target(host_shaders DEPENDS ${SHADER_HEADERS})
+
+file(GLOB_RECURSE VIDEO_CORE CONFIGURE_DEPENDS shadps4/video_core/*.cpp)
+file(GLOB_RECURSE RECOMPILER CONFIGURE_DEPENDS shadps4/shader_recompiler/*.cpp)
+list(FILTER VIDEO_CORE EXCLUDE REGEX "renderdoc\\.cpp$")
+set(COMMON
+    shadps4/common/decoder.cpp shadps4/common/error.cpp
+    shadps4/common/io_file.cpp shadps4/common/native_clock.cpp shadps4/common/number_utils.cpp
+    shadps4/common/path_util.cpp shadps4/common/rdtsc.cpp shadps4/common/spin_lock.cpp shadps4/common/recursive_lock.cpp
+    shadps4/common/string_util.cpp shadps4/common/thread.cpp shadps4/common/signal_context.cpp
+    shim/common/logging/log.cpp)
+file(GLOB AVPLAYER CONFIGURE_DEPENDS shadps4/core/libraries/avplayer/*.cpp)
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET libavformat libavcodec libavutil libswscale libswresample)
+file(GLOB SHIM_SOURCES CONFIGURE_DEPENDS shim/*.cpp shim/*/*.cpp)
+# Windows: a DLL cannot leave the runtime_* symbols for ps4rt-probe.exe to resolve, so the
+# library is static there and linked into the executable.
+if (WIN32)
+    set(PS4RTGPU_KIND STATIC)
+else()
+    set(PS4RTGPU_KIND SHARED)
+endif()
+add_library(ps4rtgpu ${PS4RTGPU_KIND} ${VIDEO_CORE} ${RECOMPILER} ${COMMON} ${SHIM_SOURCES}
+    shadps4/core/libraries/gnmdriver/gnmdriver.cpp
+    shadps4/core/libraries/videoout/driver.cpp shadps4/core/libraries/videoout/video_out.cpp
+    shadps4/core/libraries/kernel/equeue.cpp shadps4/core/libraries/kernel/event_flag.cpp ${AVPLAYER}
+    shadps4/core/libraries/videodec/video_utils.cpp)
+add_dependencies(ps4rtgpu host_shaders)
+# In-game settings menu: Dear ImGui (third_party/imgui, MIT) with its Vulkan backend, and an
+# embedded Cyrillic font (third_party/fonts).
+target_sources(ps4rtgpu PRIVATE third_party/imgui/imgui.cpp third_party/imgui/imgui_draw.cpp
+    third_party/imgui/imgui_tables.cpp third_party/imgui/imgui_widgets.cpp
+    third_party/imgui/backends/imgui_impl_vulkan.cpp)
+target_include_directories(ps4rtgpu PRIVATE third_party/imgui third_party/imgui/backends)
+target_compile_definitions(ps4rtgpu PRIVATE IMGUI_IMPL_VULKAN_NO_PROTOTYPES
+    PS4RT_FONT_PATH="${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/DejaVuSans.ttf")
+set_source_files_properties(shim/ps4rt_overlay.cpp PROPERTIES
+    OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/DejaVuSans.ttf)
+target_include_directories(ps4rtgpu PRIVATE shim shadps4 ${SHADER_INCLUDE} third_party/gcn/include third_party/half/include)
+target_compile_definitions(ps4rtgpu PRIVATE BOOST_ASIO_STANDALONE NDEBUG)
+target_compile_options(ps4rtgpu PRIVATE -Wno-deprecated-declarations -Wno-missing-field-initializers)
+# Runtime symbols (runtime_memory_*, runtime_process_*) resolve against ps4rt-probe.
+if (NOT WIN32)
+    target_link_options(ps4rtgpu PRIVATE -Wl,--allow-shlib-undefined)
+endif()
+target_link_libraries(ps4rtgpu PRIVATE ffx-vulkan::portable ffx-vulkan::fsr4-v07-vulkan)
+target_link_libraries(ps4rtgpu PUBLIC Vulkan::Headers fmt::fmt Boost::headers magic_enum::magic_enum
+    tsl::robin_map GPUOpen::VulkanMemoryAllocator PkgConfig::XXHASH PkgConfig::SDL3 PkgConfig::FFMPEG miniz::miniz Zydis::Zydis sirit)
+target_include_directories(ps4rtgpu PRIVATE third_party/xbyak)
+if (WIN32)
+    # Guest code is entered with the System V ABI; NOMINMAX/WIN32_LEAN_AND_MEAN keep
+    # <windows.h> out of the way of std::min/max and the Vulkan/SDL headers.
+    target_compile_definitions(ps4rtgpu PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
+    target_compile_options(ps4rtgpu PRIVATE -include ${CMAKE_CURRENT_SOURCE_DIR}/shim/ps4rt_win_compat.h)
+    target_link_libraries(ps4rtgpu PUBLIC Vulkan::Vulkan ws2_32 bcrypt ntdll synchronization winmm pdh)
+else()
+    target_link_libraries(ps4rtgpu PUBLIC PkgConfig::X11)
+endif()
+
+
+# Focused regressions for the shipped title's rendering and transition fixes.
+enable_testing()
+add_executable(ui-coordinates-gpu-test EXCLUDE_FROM_ALL ../tests/test_ui_coordinates_gpu.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(ui-coordinates-gpu-test PRIVATE shim shadps4 third_party/gcn/include ${CMAKE_CURRENT_BINARY_DIR}/include)
+target_compile_options(ui-coordinates-gpu-test PRIVATE -UNDEBUG -fPIC -fvisibility-inlines-hidden)
+target_link_libraries(ui-coordinates-gpu-test PRIVATE ps4rtgpu)
+add_test(NAME ui-coordinates-gpu COMMAND ui-coordinates-gpu-test)
+add_executable(sakura-camera-test EXCLUDE_FROM_ALL ../tests/test_sakura_camera.cpp)
+target_include_directories(sakura-camera-test PRIVATE shadps4)
+target_compile_options(sakura-camera-test PRIVATE -UNDEBUG)
+add_test(NAME sakura-camera COMMAND sakura-camera-test)
+add_executable(display-sample-gpu-test EXCLUDE_FROM_ALL ../tests/test_display_sample_gpu.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(display-sample-gpu-test PRIVATE shim shadps4 third_party/gcn/include)
+target_compile_options(display-sample-gpu-test PRIVATE -UNDEBUG -fPIC)
+target_link_libraries(display-sample-gpu-test PRIVATE ps4rtgpu)
+add_test(NAME display-sample-gpu COMMAND display-sample-gpu-test)
+add_executable(transition-snapshot-gpu-test EXCLUDE_FROM_ALL ../tests/test_transition_snapshot_gpu.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(transition-snapshot-gpu-test PRIVATE shim shadps4 third_party/gcn/include)
+target_compile_options(transition-snapshot-gpu-test PRIVATE -UNDEBUG -fPIC)
+target_link_libraries(transition-snapshot-gpu-test PRIVATE ps4rtgpu)
+add_test(NAME transition-snapshot-gpu COMMAND transition-snapshot-gpu-test)
+add_executable(cpu-image-writeback-test EXCLUDE_FROM_ALL ../tests/test_cpu_image_writeback.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(cpu-image-writeback-test PRIVATE shim shadps4 third_party/gcn/include)
+target_compile_options(cpu-image-writeback-test PRIVATE -UNDEBUG -fPIC)
+target_link_libraries(cpu-image-writeback-test PRIVATE ps4rtgpu)
+add_test(NAME cpu-image-writeback COMMAND cpu-image-writeback-test)
+add_executable(color-export-test EXCLUDE_FROM_ALL ../tests/test_color_export.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(color-export-test PRIVATE shim shadps4 third_party/gcn/include)
+target_compile_options(color-export-test PRIVATE -UNDEBUG -fPIC)
+target_link_libraries(color-export-test PRIVATE ps4rtgpu)
+add_test(NAME color-export COMMAND color-export-test)
+add_executable(image-subresource-test EXCLUDE_FROM_ALL ../tests/test_image_subresource.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(image-subresource-test PRIVATE shim shadps4 third_party/gcn/include)
+target_compile_options(image-subresource-test PRIVATE -UNDEBUG -fPIC)
+target_link_libraries(image-subresource-test PRIVATE ps4rtgpu)
+add_test(NAME image-subresource COMMAND image-subresource-test)
+add_executable(gpu-workarounds-test EXCLUDE_FROM_ALL ../tests/test_gpu_workarounds.cpp ../tests/test_gpu_runtime_stubs.cpp)
+target_include_directories(gpu-workarounds-test PRIVATE shim shadps4 third_party/gcn/include)
+target_compile_options(gpu-workarounds-test PRIVATE -UNDEBUG -fPIC)
+target_link_libraries(gpu-workarounds-test PRIVATE ps4rtgpu)
+add_test(NAME gpu-workarounds COMMAND gpu-workarounds-test)
+add_executable(camera-layout-test EXCLUDE_FROM_ALL ../tests/test_camera_layout.cpp)
+target_include_directories(camera-layout-test PRIVATE shim shadps4)
+target_compile_options(camera-layout-test PRIVATE -UNDEBUG)
+add_test(NAME camera-layout COMMAND camera-layout-test)
+add_executable(scene-camera-history-test EXCLUDE_FROM_ALL ../tests/test_scene_camera_history.cpp)
+target_include_directories(scene-camera-history-test PRIVATE shim shadps4)
+target_compile_options(scene-camera-history-test PRIVATE -UNDEBUG)
+add_test(NAME scene-camera-history COMMAND scene-camera-history-test)
+add_executable(menu-input-test EXCLUDE_FROM_ALL ../tests/test_menu_input.cpp)
+target_include_directories(menu-input-test PRIVATE shim shadps4)
+target_compile_options(menu-input-test PRIVATE -UNDEBUG)
+add_test(NAME menu-input COMMAND menu-input-test)
+add_executable(graphics-settings-test EXCLUDE_FROM_ALL ../tests/test_graphics_settings.cpp shim/ps4rt_settings.cpp)
+target_include_directories(graphics-settings-test PRIVATE shim)
+target_compile_options(graphics-settings-test PRIVATE -UNDEBUG)
+add_test(NAME graphics-settings COMMAND graphics-settings-test)
+add_executable(framerate-test EXCLUDE_FROM_ALL ../tests/test_framerate.cpp shim/ps4rt_framerate.cpp shim/ps4rt_settings.cpp)
+target_include_directories(framerate-test PRIVATE shim)
+target_compile_options(framerate-test PRIVATE -UNDEBUG)
+add_test(NAME framerate COMMAND framerate-test)
+
+set_source_files_properties(../tests/test_display_sample_gpu.cpp PROPERTIES COMPILE_OPTIONS "-fvisibility=hidden;-fvisibility-inlines-hidden")
+
+set_source_files_properties(../tests/test_transition_snapshot_gpu.cpp PROPERTIES COMPILE_OPTIONS "-fvisibility=hidden;-fvisibility-inlines-hidden")
+
+set_source_files_properties(../tests/test_cpu_image_writeback.cpp PROPERTIES COMPILE_OPTIONS "-fvisibility=hidden;-fvisibility-inlines-hidden")
+
+set_source_files_properties(../tests/test_color_export.cpp PROPERTIES COMPILE_OPTIONS "-fvisibility=hidden;-fvisibility-inlines-hidden")
+
+set_source_files_properties(../tests/test_image_subresource.cpp PROPERTIES COMPILE_OPTIONS "-fvisibility=hidden;-fvisibility-inlines-hidden")
+
+set_source_files_properties(../tests/test_gpu_workarounds.cpp PROPERTIES COMPILE_OPTIONS "-fvisibility=hidden;-fvisibility-inlines-hidden")
+
+target_sources(cpu-image-writeback-test PRIVATE ../tests/test_cpu_image_writeback_fault.cpp)

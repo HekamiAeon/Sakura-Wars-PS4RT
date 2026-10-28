@@ -1,0 +1,50 @@
+# PS4RT portable builder: modern C++23 compiler + Boost on original Jammy glibc.
+# Build on the existing COMPLETE dependency image, NOT the original FFmpeg image.
+# Original game sources, FSR code, and published release are not modified.
+FROM localhost/ps4rt-builder:complete
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Conda-forge GCC toolchains have a controlled Linux sysroot; choosing 2.34
+# ensures code built against it does not require a glibc newer than Jammy's 2.35.
+# A final ELF symbol/version and library RPATH audit is still mandatory.
+RUN set -eux; \
+    curl -fsSL --retry 3 https://micro.mamba.pm/api/micromamba/linux-64/latest \
+       | tar -xj -C /usr/local bin/micromamba; \
+    test -x /usr/local/bin/micromamba
+
+ENV MAMBA_ROOT_PREFIX=/opt/ps4rt-mamba
+RUN set -eux; \
+    micromamba create -y -p /opt/ps4rt-toolchain -c conda-forge \
+       'gcc_linux-64=14' 'gxx_linux-64=14' \
+       'sysroot_linux-64=2.34' 'libboost-headers=1.85.0'; \
+    micromamba clean -a -y; \
+    test -x /opt/ps4rt-toolchain/bin/x86_64-conda-linux-gnu-g++; \
+    test -f /opt/ps4rt-toolchain/include/boost/container/small_vector.hpp
+
+# CC/CXX select the modern compiler. CPATH gives its complete C++23-aware
+# Boost headers precedence over Jammy's Boost 1.74 headers.
+ENV CC=/opt/ps4rt-toolchain/bin/x86_64-conda-linux-gnu-gcc \
+    CXX=/opt/ps4rt-toolchain/bin/x86_64-conda-linux-gnu-g++ \
+    CPATH=/opt/ps4rt-toolchain/include:/opt/ps4rt-deps/include \
+    CMAKE_PREFIX_PATH=/opt/ps4rt-deps \
+    PKG_CONFIG_PATH=/opt/ps4rt-deps/lib/pkgconfig:/opt/ps4rt-deps/lib/x86_64-linux-gnu/pkgconfig
+
+# Fast failure if the compiler, std::span conversion or C++23 union handling
+# still fail. Avoid compiling PS4RT's 251 objects before checking them.
+RUN set -eux; \
+    "$CXX" --version | head -1; \
+    printf '%s\n' \
+      '#include <span>' \
+      '#include <boost/container/small_vector.hpp>' \
+      'struct VR { explicit VR() = default; unsigned idx{}; unsigned typ{}; };' \
+      'struct R { int t{0}; union { unsigned idx{}; VR reg; }; R() = default; };' \
+      'static constexpr R r{};' \
+      'void accept(std::span<int>);' \
+      'void test() { boost::container::small_vector<int, 4> v; accept(v); }' \
+      > /tmp/ps4rt-cxx23-smoke.cpp; \
+    "$CXX" -std=c++23 -fsyntax-only /tmp/ps4rt-cxx23-smoke.cpp; \
+    rm /tmp/ps4rt-cxx23-smoke.cpp
+
+WORKDIR /work
+CMD ["bash"]

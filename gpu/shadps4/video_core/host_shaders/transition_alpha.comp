@@ -1,0 +1,15 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+#version 450
+layout(local_size_x=8,local_size_y=8) in;
+layout(set=0,binding=0,std430) readonly buffer Guest { uint pixels[]; } guest;
+layout(set=0,binding=1,rgba8) uniform image2D snapshot;
+layout(push_constant) uniform Params { uint width; uint height; uint pitch; } p;
+void main() {
+    uvec2 xy=gl_GlobalInvocationID.xy;
+    if(xy.x>=p.width || xy.y>=p.height) return;
+    vec4 color=imageLoad(snapshot,ivec2(xy));
+    // Guest writes alpha after producing the saved screen. Its RGB may have
+    // passed through the suspect CPU preservation path; never import that RGB.
+    color.a=float(guest.pixels[xy.y*p.pitch+xy.x]>>24)/255.0;
+    imageStore(snapshot,ivec2(xy),color);
+}

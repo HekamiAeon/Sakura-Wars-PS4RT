@@ -1,0 +1,65 @@
+//  SPDX-FileCopyrightText: Copyright 2024 shadPS4 Emulator Project
+//  SPDX-License-Identifier: GPL-2.0-or-later
+
+#pragma once
+
+#include "common/types.h"
+#include "video_core/renderer_vulkan/vk_common.h"
+#include "video_core/texture_cache/image.h"
+
+namespace Vulkan::HostPasses {
+
+class FsrPass {
+public:
+    ~FsrPass();
+    struct Settings {
+        bool enable{true};
+        bool use_rcas{true};
+        float rcas_attenuation{0.25f};
+        bool anti_aliasing{false};
+        bool srgb_input{false};
+    };
+
+    void Create(vk::Device device, VmaAllocator allocator, u32 num_images);
+
+    vk::ImageView Render(vk::CommandBuffer cmdbuf, vk::ImageView input, vk::Extent2D input_size,
+                         vk::Extent2D output_size, Settings settings, bool hdr);
+
+private:
+    struct Img {
+        u8 id{};
+        bool dirty{true};
+
+        VideoCore::UniqueImage intermediary_image;
+        vk::UniqueImageView intermediary_image_view;
+
+        VideoCore::UniqueImage output_image;
+        vk::UniqueImageView output_image_view;
+        VideoCore::UniqueImage aa_image;
+        vk::UniqueImageView aa_view;
+        vk::Extent2D aa_size{};
+    };
+
+    void ResizeAndInvalidate(u32 width, u32 height);
+    void CreateImages(Img& img) const;
+    vk::ImageView AntiAlias(vk::CommandBuffer cmdbuf, Img& img, vk::ImageView input,
+                           vk::Extent2D size, bool srgb_input);
+
+    vk::Device device{};
+    u32 num_images{};
+
+    vk::UniqueDescriptorSetLayout descriptor_set_layout{};
+    vk::UniqueDescriptorSet easu_descriptor_set{};
+    vk::UniqueDescriptorSet rcas_descriptor_set{};
+    vk::UniqueSampler sampler{};
+    vk::UniquePipelineLayout pipeline_layout{};
+    vk::UniquePipeline easu_pipeline{};
+    vk::UniquePipeline rcas_pipeline{};
+    vk::UniquePipeline aa_pipeline{};
+
+    vk::Extent2D cur_size{};
+    u32 cur_image{};
+    std::vector<Img> available_imgs;
+};
+
+} // namespace Vulkan::HostPasses

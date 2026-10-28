@@ -1,0 +1,17 @@
+* text=auto
+*.sh text eol=lf
+*.py text eol=lf
+*.spv binary
+*.bin binary
+*.ttf binary
+
+# Private development notes never belong in a source archive.
+# Excluding at git archive time avoids needlessly archiving entire upstream references.
+references/ export-ignore
+tools/lab/ export-ignore
+templates/ export-ignore
+.github/ export-ignore
+AGENTS.md export-ignore
+LAB_README.md export-ignore
+MIGRATION_NOTES.md export-ignore
+docs/AUTOMATED_PORTING.md export-ignore

@@ -1,0 +1,56 @@
+# PS4RT portable Linux prototype, stage 1: older-glibc toolchain + lean FFmpeg 8.
+# This is a developer BUILD image, never a requirement for players.
+FROM docker.io/library/ubuntu:22.04
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+ENV DEBIAN_FRONTEND=noninteractive
+ENV CC=/usr/bin/gcc-12 CXX=/usr/bin/g++-12
+ENV PKG_CONFIG_PATH=/opt/ps4rt-deps/lib/pkgconfig
+ENV LD_LIBRARY_PATH=/opt/ps4rt-deps/lib
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl gnupg xz-utils tar git make build-essential \
+    gcc-12 g++-12 pkg-config nasm yasm ninja-build \
+    python3 python3-pip \
+    libvulkan-dev glslang-tools libx11-dev libfmt-dev libboost-dev \
+    libxxhash-dev robin-map-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+# Jammy ships CMake 3.22; PS4RT requires at least 3.24.
+RUN python3 -m pip install --no-cache-dir 'cmake==3.31.10'
+
+# FFmpeg 8.0.3 maintains the same major library SONAMEs as the Fedora build.
+# Disable discovery of distro-specific multimedia dependencies. Keep FFmpeg's
+# built-in decoders/demuxers/parsers for the initial game-regression pass.
+# This is intentionally NOT the final minimized codec allowlist.
+ARG FFMPEG_VERSION=8.0.3
+RUN set -eux; \
+    curl -fSL --retry 3 "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" \
+      -o /tmp/ffmpeg.tar.xz; \
+    curl -fSL --retry 3 "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz.asc" \
+      -o /tmp/ffmpeg.tar.xz.asc; \
+    curl -fSL --retry 3 'https://ffmpeg.org/ffmpeg-devel.asc' -o /tmp/ffmpeg-devel.asc; \
+    gpg --batch --import /tmp/ffmpeg-devel.asc; \
+    gpg --batch --with-colons --list-keys | grep -q 'FCF986EA15E6E293A5644F10B4322F04D67658D8'; \
+    gpg --batch --verify /tmp/ffmpeg.tar.xz.asc /tmp/ffmpeg.tar.xz; \
+    mkdir -p /tmp/ffmpeg-src; \
+    tar -xJf /tmp/ffmpeg.tar.xz -C /tmp/ffmpeg-src --strip-components=1; \
+    cd /tmp/ffmpeg-src; \
+    ./configure \
+      --prefix=/opt/ps4rt-deps \
+      --enable-shared --disable-static --enable-pic \
+      --disable-autodetect --disable-network --disable-hwaccels \
+      --disable-programs --disable-doc --disable-debug \
+      --disable-avdevice --disable-avfilter \
+      --disable-encoders --disable-muxers; \
+    make -j "$(nproc)"; \
+    make install; \
+    rm -rf /tmp/ffmpeg* /root/.gnupg; \
+    test -f /opt/ps4rt-deps/lib/libavcodec.so.62; \
+    test -f /opt/ps4rt-deps/lib/libavformat.so.62; \
+    test -f /opt/ps4rt-deps/lib/libswscale.so.9; \
+    test -f /opt/ps4rt-deps/lib/libswresample.so.6; \
+    test -f /opt/ps4rt-deps/lib/libavutil.so.60
+
+WORKDIR /work
+CMD ["bash"]

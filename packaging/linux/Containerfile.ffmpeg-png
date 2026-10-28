@@ -1,0 +1,31 @@
+# Repair FFmpeg's PNG decoder: --disable-autodetect also disabled zlib,
+# which FFmpeg 8's inflate_wrapper needs. Keep the proven GPU/toolchain build.
+FROM localhost/ps4rt-builder:zycore
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+ARG FFMPEG_VERSION=8.0.3
+RUN set -eux; \
+    test -f /usr/include/zlib.h; \
+    curl -fSL --retry 3 "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" -o /tmp/ffmpeg.tar.xz; \
+    curl -fSL --retry 3 "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz.asc" -o /tmp/ffmpeg.tar.xz.asc; \
+    curl -fSL --retry 3 'https://ffmpeg.org/ffmpeg-devel.asc' -o /tmp/ffmpeg-devel.asc; \
+    gpg --batch --import /tmp/ffmpeg-devel.asc; \
+    gpg --batch --with-colons --fingerprint | grep -F 'FCF986EA15E6E293A5644F10B4322F04D67658D8'; \
+    gpg --batch --verify /tmp/ffmpeg.tar.xz.asc /tmp/ffmpeg.tar.xz; \
+    mkdir -p /tmp/ffmpeg-src; \
+    tar -xJf /tmp/ffmpeg.tar.xz -C /tmp/ffmpeg-src --strip-components=1; \
+    cd /tmp/ffmpeg-src; \
+    ./configure \
+      --cc=/usr/bin/gcc-12 --cxx=/usr/bin/g++-12 \
+      --prefix=/opt/ps4rt-deps \
+      --enable-shared --disable-static --enable-pic \
+      --disable-autodetect --enable-zlib --enable-decoder=png \
+      --disable-network --disable-hwaccels \
+      --disable-programs --disable-doc --disable-debug \
+      --disable-avdevice --disable-avfilter \
+      --disable-encoders --disable-muxers; \
+    make -j 4; \
+    make install; \
+    printf '#include <libavcodec/avcodec.h>\nint main(void){return avcodec_find_decoder(AV_CODEC_ID_PNG)?0:1;}\n' > /tmp/ps4rt-png-check.c; \
+    gcc-12 /tmp/ps4rt-png-check.c -o /tmp/ps4rt-png-check $(pkg-config --cflags --libs libavcodec); \
+    /tmp/ps4rt-png-check; \
+    rm -rf /tmp/ffmpeg.tar.xz /tmp/ffmpeg.tar.xz.asc /tmp/ffmpeg-devel.asc /tmp/ffmpeg-src /tmp/ps4rt-png-check* /root/.gnupg

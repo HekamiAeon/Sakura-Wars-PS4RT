@@ -1,0 +1,771 @@
+{
+  "schema_version": 1,
+  "version": "FSR 4 source-v07 INT8/DOT4",
+  "asset_repository": "https://github.com/FireBurn/Q2RTX",
+  "asset_commit": "ae8d628fae208813172446d1e49ed94150b04658",
+  "source_repository": "https://github.com/WinLinux1028/FidelityFX-SDK_WithFSR4",
+  "source_commit": "01446e6a74888bf349652fcf2cbf5f642d30c2bf",
+  "license_notice": "fsr4_shaders/LICENSE-FSR4-v07.txt",
+  "output_tiers": [
+    "1080",
+    "2160"
+  ],
+  "files": {
+    "fsr4_shaders/LICENSE-FSR4-v07.txt": {
+      "size": 1841,
+      "sha256": "1ba466516fa4270690c2b6e6a65f5b4b23d7ff0d7b1346603e187c1b3ad67f2a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass1.spv": {
+      "size": 45132,
+      "sha256": "42ecc3732bae7cc5b22b0cf1bb25fc298963dd53a3f0233b343251d3ce43ffdf"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass10.spv": {
+      "size": 105464,
+      "sha256": "6a120cc64cfb7d49e4f354f8ecefdb5aedea0b639946a43f2231bcfafd11bf7c"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass11.spv": {
+      "size": 120552,
+      "sha256": "a2d23c0f7fea57f103f0880f59b71222808a858c7a891cecf88b6fc7a20e5799"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass12.spv": {
+      "size": 45128,
+      "sha256": "bea297cc9ef8f61441675c26c67bc7b7bde7021f9e533b58ab0d2e689a9ac436"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass2.spv": {
+      "size": 45104,
+      "sha256": "13ccbb9f1e13cd2a22102fe1b1a42583fc7f7bcf80a356c85d18974d0fc392f4"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass3.spv": {
+      "size": 57520,
+      "sha256": "c6b1726c32d84cd59ae789149f0f525fefbe411eb606214f979656fb2fb02651"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass4.spv": {
+      "size": 105456,
+      "sha256": "4e06a2ae4b9ec6f3b40b5b6da413f79059861a6d82e2a78a75408643abfb6e7e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass5.spv": {
+      "size": 105440,
+      "sha256": "2423db5e97b0866845ccdf2533cb87f2c3bdcc30fdd0c2dca8d8530d9151c6c4"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass6.spv": {
+      "size": 222364,
+      "sha256": "2d8e45dd83b2c958373d7d638e01ca7d898ac9bb8f948145f1f1541dd8ffa755"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass7.spv": {
+      "size": 503788,
+      "sha256": "40d1748a7d8f289683e94de53415da736cb87a7428f3e557e03aee9553043dab"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass8.spv": {
+      "size": 503568,
+      "sha256": "5c6ccc301813075d4a94b06501fa7554892db0b650cdc6ee48e41346507ded93"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass9.spv": {
+      "size": 508540,
+      "sha256": "b91df130b7a74a1602d3d0dd50ca3ae4c816eb81812c52fbf8a74b215db0f220"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_post.spv": {
+      "size": 63408,
+      "sha256": "199dbd65eb1bf6ccb907fb19552001e90e338594d1d3bc681f978b74f074bbe8"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pre.spv": {
+      "size": 46376,
+      "sha256": "95811aac5cc520d79437a1050b61c922b7a312922aa17f53be23566661cf212b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass1.spv": {
+      "size": 45132,
+      "sha256": "80dcb61895b29191d40956e42eb0d1ad7e87a57da8d522ebd943ada1cf914747"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass10.spv": {
+      "size": 105464,
+      "sha256": "8d52f44e705aece4635989ad90888eb92a284cb743eac51630bd995518f0d3a0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass11.spv": {
+      "size": 120552,
+      "sha256": "81506d9a1466b0d0988467708c0caf36d589c07ffd9657310258588ce1cfc95a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass12.spv": {
+      "size": 45128,
+      "sha256": "69fadbc71a943c9e7f44f6dc7717bb0910f9425d78467194837dbdacaff6c4b5"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass2.spv": {
+      "size": 45104,
+      "sha256": "b975fa12ba103708a558bae90be9bbad66ec3b14fcb17f67541d62c0ba22308e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass3.spv": {
+      "size": 57520,
+      "sha256": "a74793b0d4fbe34e18ee8d3d62d83cb5175a9d15e9980b6cc9423304cfa7e567"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass4.spv": {
+      "size": 105456,
+      "sha256": "44a5972a54e82363e6bd5e2ac265c3c39ed3db2084011abd5810278f05cc98c4"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass5.spv": {
+      "size": 105440,
+      "sha256": "bc1ae70b12d1364c310728f4f0a2e9ffd4217e5ba482664eaf722024f85d6ecd"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass6.spv": {
+      "size": 222364,
+      "sha256": "4414cf16ceedc4a3944451e40f20afff2fae6e7329c5865d92bb98a9ba591596"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass7.spv": {
+      "size": 503788,
+      "sha256": "b020a2a0fa8e4a08e206d7e3f6a141a2063d7e647efb4b550fe070c5b77fe35f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass8.spv": {
+      "size": 503568,
+      "sha256": "77bc838f63bf67c07104bf94d5fb18784ee963ec2c485e790fe7e9850b0e455b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pass9.spv": {
+      "size": 508540,
+      "sha256": "2c9df601353bba22dbcf03faa679b2d373bad3758a1de54ada44e03a19d43bd9"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_post.spv": {
+      "size": 63408,
+      "sha256": "26ebfffbdb5e053e1ad37bb7bee408f96837e7ae83d7a2fc06a48400ff742bae"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pre.spv": {
+      "size": 46376,
+      "sha256": "915e2523c6276d5f50dbe264217e78db04d43dcddf492416dd619e3678d91961"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_initializers.bin": {
+      "size": 89216,
+      "sha256": "a8e96ddb0c2a5f937011a78381a7975e99cd6e455ce72ef92f2f7dbff742e4c2"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_pre_weights.bin": {
+      "size": 1024,
+      "sha256": "b9dd178acdd51c4298016d037bea4e15147358b4724c1da76b2a7bbf7009b069"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_shader_manifest.json": {
+      "size": 40952,
+      "sha256": "9f0cac5ff61e725ec79b9ffc0f0105d64f27e154ce61583c971ade2726df85fc"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass1.spv": {
+      "size": 45132,
+      "sha256": "5ae840b515608cceaf8294bb561e826d4d0ca5105d9d1d4afc2d1201580e426d"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass10.spv": {
+      "size": 105404,
+      "sha256": "afcb7edba8f3024dc56a2c9a19b361812bc8de6e3f36709b9c8128d1f06b6324"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass11.spv": {
+      "size": 120552,
+      "sha256": "99d9d0bd724a63277d810c1d571d4af947c0d6a97c6a4abf3c1003c1e6ce8d6d"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass12.spv": {
+      "size": 45128,
+      "sha256": "8d265eee1462555764c67803177c7ddea752dc4e04bd29c134e8997ffc41e109"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass2.spv": {
+      "size": 45120,
+      "sha256": "e124c38430559fd73a5cd3c50c62bd975b6f000f3b34c7af717f27582560b588"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass3.spv": {
+      "size": 57520,
+      "sha256": "f4e0b3464bcee9fa2f1479f6804e31e8a02fb53e508d7d66f92cbe68c237ab2a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass4.spv": {
+      "size": 105456,
+      "sha256": "e9bce1e23407f19abdb67a66595aefe62dcb87136ae9000810763c29ce85622a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass5.spv": {
+      "size": 105440,
+      "sha256": "166d1d4e3c486cea93ac69684b6c5b3fb9fcfa8c6d8115238ff60e794144c82f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass6.spv": {
+      "size": 222304,
+      "sha256": "0abd301791aaf1cfcb869150e06b837a3e8bd8a23fc04c178d8db12326aef3d2"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass7.spv": {
+      "size": 503708,
+      "sha256": "85a88983fcadd3a56956643c8723d325048f31018e0b081053441df78f74bf51"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass8.spv": {
+      "size": 503472,
+      "sha256": "b542a56479a036d5c700923260c718adc39d22dfc5fa57874eadc69c4b7f46a2"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pass9.spv": {
+      "size": 508584,
+      "sha256": "a6a439ebaed302f4e4bd3ee3fbdaaee78e8d9bd44947c4712619bc6ce26ed9c6"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_post.spv": {
+      "size": 63408,
+      "sha256": "acd6263c648a754904b8a88475500ae3bf2ec553123931defe1edcbcf1c5d14f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_1080_pre.spv": {
+      "size": 46376,
+      "sha256": "06b0c47dfbba5fc4f3055a8bb11b5222f8cf90b81585a9337ad3344665e5f08f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass1.spv": {
+      "size": 45132,
+      "sha256": "72e4eb081725849d771b235714d52a252138b50175a83084a225e85a1154fbea"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass10.spv": {
+      "size": 105404,
+      "sha256": "26f31ac70d557c005080ec3245ee2f2130971f7327edee069ab91794c50f708d"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass11.spv": {
+      "size": 120552,
+      "sha256": "48de4166c8c950133652d65590d2ec60ce1851d427e32f1ba8570b8ba5396b4a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass12.spv": {
+      "size": 45128,
+      "sha256": "6d4be14c97ab3f0e0e6a6a9512be48c7e1812e57f2f10d30562ff91a3c9aab1a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass2.spv": {
+      "size": 45120,
+      "sha256": "d52cea2d6bf7f67c8f3d87e4785caabd90613c960cdabe0adae6afb4c9307c0d"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass3.spv": {
+      "size": 57520,
+      "sha256": "06c27fcfe8bec9ee0f423ea7eb8ebc469407aae41866ecdfc83ce82df15008a2"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass4.spv": {
+      "size": 105456,
+      "sha256": "0df8b868f69e82dc55e9ecf1c9d47d639d6ab95cc5674aba8595b68eaa4db633"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass5.spv": {
+      "size": 105440,
+      "sha256": "30f25afc74219a3fdc015a0eab4d8db51171c406058880a6612731ab55418309"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass6.spv": {
+      "size": 222304,
+      "sha256": "cb437ab220352316d77af88756a4163c7ee4986c1653f3161f1abe0fe4ca2e4b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass7.spv": {
+      "size": 503708,
+      "sha256": "53b48ab0339c9323925443e26d9fc9f2a5052f2033beae4ee5e4e16e320e47be"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass8.spv": {
+      "size": 503472,
+      "sha256": "c856e73415ddf7a0d8460a1b14cbc9a45096b6f7c1271107c3ad2f3e1e0aba6a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pass9.spv": {
+      "size": 508584,
+      "sha256": "5560295bed278a472bd9f2030100f0984c80fbacd9db3290cb61f00340c595bd"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_post.spv": {
+      "size": 63408,
+      "sha256": "9200841d128ca6923a7233170ee57a56e1bc7c8704ab8dd2782546f561a83ad6"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_2160_pre.spv": {
+      "size": 46376,
+      "sha256": "13c2048f2ce41f040574779646b85745529a624c8b7322c3195b9e17631e58de"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_initializers.bin": {
+      "size": 89216,
+      "sha256": "00ab0bc1fd12a823bb0fc8cd227b0e2d15718fe2a2082e972c6e0b6e46c77a8c"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_pre_weights.bin": {
+      "size": 1024,
+      "sha256": "6277a5d340d1e229312bf72b2fb4f3572c1a9d64e3d037be9fd93eafbad3ff3e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_shader_manifest.json": {
+      "size": 40722,
+      "sha256": "0cb8fc2e12bf1e5d1632983420c108f9eae624c91faee5f605d3fdd6585dad7b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass1.spv": {
+      "size": 45072,
+      "sha256": "bb9f1bf97f1aeb4d122e4b3dfaf39e9c9abc3a6b8cd1bf6b73e4b5efc275e7d2"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass10.spv": {
+      "size": 105464,
+      "sha256": "908bfcbff12fb1c1753da2d88e0bba09dee2daa6bb6ea7118a7b1400940781ec"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass11.spv": {
+      "size": 120612,
+      "sha256": "dd17c45788dfc9aa2e693b43ceec0f021b6d549843ca0293014bfce75e91efc6"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass12.spv": {
+      "size": 45128,
+      "sha256": "17f35a3d7ea9635a01a140dc32179bdd1fec12f41f278bea800f9e97044ebe82"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass2.spv": {
+      "size": 45104,
+      "sha256": "a450b18536243d5b6f32d6e3e7cb056dc2bfb55333631d140fb55ef673266c08"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass3.spv": {
+      "size": 57520,
+      "sha256": "6bc0cc882bec201ed6f41f8114c0fd6c9c58febdb71beeafa0659a178ef1f295"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass4.spv": {
+      "size": 105440,
+      "sha256": "41329fcf5d9e0fa8cda3ace81f58312ad14294db6ceeeb9eb85a21aaad59fdb6"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass5.spv": {
+      "size": 105288,
+      "sha256": "17a3d0a262a25f0857289f3b2a2edf6a3b93bfcaa583f48409f1f16a0fc0a34e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass6.spv": {
+      "size": 222364,
+      "sha256": "e21134b8c8c402672fba8697578fc6cdb67d213bef8f3604ea1e1e464e4e0df4"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass7.spv": {
+      "size": 503664,
+      "sha256": "d96ae1004e5d6b6b29df36dba63de491d2724c6f35d9223e2806b03ddf9c0316"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass8.spv": {
+      "size": 503268,
+      "sha256": "f410d69706e81c4fa5f13781bf14434e221691ba8f8123afc93ca3c91a831253"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pass9.spv": {
+      "size": 508600,
+      "sha256": "b27ec22973c17ddc3ad9b784eec7b49e40528baf9ee8bce4cfb7ae50b1593985"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_post.spv": {
+      "size": 63316,
+      "sha256": "0c38a8229f6f8009e1facc8f1c0fe9292de2506c92d8f1141e628af1196d2eff"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_1080_pre.spv": {
+      "size": 46376,
+      "sha256": "f6d7d4a19209f1bd2ff894520594c11ee9b842604a2356ccde8cddcbba66562f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass1.spv": {
+      "size": 45072,
+      "sha256": "a5a9a00aa3a2853a0934e45fc4243051653f61d2db55a5e4447f716e4ea45088"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass10.spv": {
+      "size": 105464,
+      "sha256": "f418684fdc2b4bce068aa93de3ead6a5003915e73b91058decacf1b826a72d39"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass11.spv": {
+      "size": 120612,
+      "sha256": "4bb7d0ac14cf90e2af3d2eeb3ef7d931c4c16e324275e70b0e70e59c33ba82b5"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass12.spv": {
+      "size": 45128,
+      "sha256": "e38b3949be570a2dd0dc964bc74bd5de43428a4bf7d9c695849a990e0d1496d0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass2.spv": {
+      "size": 45104,
+      "sha256": "6baa9bd4e41b7ad2564c746970e557583d96e9ce92e5e385fc5ea92694e4e4f0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass3.spv": {
+      "size": 57520,
+      "sha256": "b4aa5d3c571e041b6d51947361aaa39edbfe60f74db5de507fb64026b5138668"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass4.spv": {
+      "size": 105440,
+      "sha256": "e7ec671fc72abcfe4ce728f43fccbcd75078b4a208de9eb0d7c0a4ddb25103ae"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass5.spv": {
+      "size": 105288,
+      "sha256": "ff3ca4ef214fcc28c318a3c53cba460690526cca7ea30798f6e3256013e70a08"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass6.spv": {
+      "size": 222364,
+      "sha256": "a612412bdf09fb37b5a83b80ac8714d8ed3a9a8f3d404bb64b5abfae306c4b99"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass7.spv": {
+      "size": 503664,
+      "sha256": "d65ae6055e9620ec59aa68e0f185e21a09e9548a0d0033b60f38b726c9cbf656"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass8.spv": {
+      "size": 503268,
+      "sha256": "4716125145a6a8f276278fef17b6d22c725e5eb37a2fb93bdcbe882cf327f268"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pass9.spv": {
+      "size": 508600,
+      "sha256": "83bf2db52fe347c5e80199c7197eb5fc4badd8fb9f6a80608e1035d2b48eedda"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_post.spv": {
+      "size": 63316,
+      "sha256": "a086677be89454986004f64d4b79f1dfdf7b2e98c222553b30d5740ce9e3f8af"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_2160_pre.spv": {
+      "size": 46376,
+      "sha256": "65c760f2199baf3b40c3ad577022996c44af75f9c9b21c32b2c25384775c6f0b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_initializers.bin": {
+      "size": 89216,
+      "sha256": "629d42b1cc57432e9f003599ad0f305fb1d311669a819b4f22ebb8f504dece1e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_pre_weights.bin": {
+      "size": 1024,
+      "sha256": "b6f2e8412d462ba207c1d5c7fe944486f474149bc3ee9234d6ae3f644235b102"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_shader_manifest.json": {
+      "size": 40860,
+      "sha256": "04bc1f8d6688742bd50724e1101e072731cebf40e62c5da6531a5d23ebe7a75b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass1.spv": {
+      "size": 45132,
+      "sha256": "bb86e58710ea35747d27449ae526108d4919bb2a547859111a2986112f4329c0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass10.spv": {
+      "size": 105404,
+      "sha256": "7b84faf394e0c6c4b8129492659e37d2b6668de282c4d7acba1db4df51e7144e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass11.spv": {
+      "size": 120432,
+      "sha256": "8f0d0e1726cfd4056e0df8f3c6f31336348a2b773b5282af537bd299649a53e0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass12.spv": {
+      "size": 45128,
+      "sha256": "87c3f0eef91b23d15c313e15fb6791b256efd3475c1ef51a129eb7b9f2563356"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass2.spv": {
+      "size": 45120,
+      "sha256": "e1986a4ab9354fe03d5657764ed295c421ca0d507137fe27418b74396a93b019"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass3.spv": {
+      "size": 57520,
+      "sha256": "986a0bce8bd1f7666835477a962b81e8d75dcca1871d2a8c0d52ab65c1451743"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass4.spv": {
+      "size": 105396,
+      "sha256": "b0756a224d6171f0ff72b67b6c9e0a5eea48a07f5ba16366c0dc167b77b5ce03"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass5.spv": {
+      "size": 105380,
+      "sha256": "cfd9ebdb274c6e6c2501bbc4b5f516d069e9250090c7e40c3b13770091a3a097"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass6.spv": {
+      "size": 222364,
+      "sha256": "5195a92c78ee44681193c06c5ccda3ad6ecd6a02c0d8e34b7ff1f54826ec94e0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass7.spv": {
+      "size": 503616,
+      "sha256": "7e8325676e00b3b943f7638c2babe49749a784becf862475c7d36b838791a1ab"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass8.spv": {
+      "size": 503580,
+      "sha256": "9cccd20b6089bb77c69880f5c85c8409bb37402df3154a680e39508fceec5e43"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pass9.spv": {
+      "size": 508540,
+      "sha256": "0e17bbf4e0747b90a69d531587776c1c7f8ede4cbfef080aaea78437cb473685"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_post.spv": {
+      "size": 63408,
+      "sha256": "f27457ce9ad873ae47123267cb353aeffb265af61482b5359dd13cd46665aa72"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_1080_pre.spv": {
+      "size": 46376,
+      "sha256": "8d811ec4c0bf88d166d38ecadac2b2fbfb9f759ea44648ce61c86cbb7001ff01"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass1.spv": {
+      "size": 45132,
+      "sha256": "f89114a3280e388cc5aa3666f959ec2cf12f9155d7680c162d2dae485bf19a44"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass10.spv": {
+      "size": 105404,
+      "sha256": "de1e02d07d66646fed5ef32da11ab38798d73ba6f220cc539bfa975def9c39a8"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass11.spv": {
+      "size": 120432,
+      "sha256": "3641d55ecb10c0b47e45d5f078483d2ffad1b2870d847020e302c4a823a9fe63"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass12.spv": {
+      "size": 45128,
+      "sha256": "38e00cbeab2f05f3bcb691b542ac7c1bd2bb5e051fef3493d71f6802e29a1e36"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass2.spv": {
+      "size": 45120,
+      "sha256": "1234f488e5747224adf412490e2ad93c47d3113afedae9455d0a0f97d2b783ca"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass3.spv": {
+      "size": 57520,
+      "sha256": "1324144389696699920940ec61082c0280e46e5ccabe8b9f16827b8d75281804"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass4.spv": {
+      "size": 105396,
+      "sha256": "5c01955f51623eba83864ef063cab75a8dcd0fcc0deacb42bdd6f6028c3810d4"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass5.spv": {
+      "size": 105380,
+      "sha256": "ea4d9963f9192f3ed20399e3ae21839bb65f10838333677b646981c25d994960"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass6.spv": {
+      "size": 222364,
+      "sha256": "fc2161e51c71ceaf44c2862327e37ae7c4ebe133ff8b047ff9d4d5c1f498ca4e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass7.spv": {
+      "size": 503616,
+      "sha256": "fa315c856338d32c8652cf4cb31dd52f318058696c593a71325e734e65cf4435"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass8.spv": {
+      "size": 503580,
+      "sha256": "97ffa461397ed70128359b55c7709b290c34ffab09c4549f4be250ae6140f1c6"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pass9.spv": {
+      "size": 508540,
+      "sha256": "5967520e9e84dc97091285d03e24a062df543d28e167ba1432dce9a58856e78d"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_post.spv": {
+      "size": 63408,
+      "sha256": "c4997be4034262e61bce100fadb81bf53aaefccc15a5e11dcc00f684a8f79fad"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_2160_pre.spv": {
+      "size": 46376,
+      "sha256": "5cc564136eee0e72db37a2a046c65a411108d49ca5023df59479d72f6a8f65b8"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_initializers.bin": {
+      "size": 89216,
+      "sha256": "fe2ad00e9e7fc563bd9ee01ab72c82bb557bf0d8365a085e833749547e089aab"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_pre_weights.bin": {
+      "size": 1024,
+      "sha256": "bb05b470e90f04d9eed0ea7600862992cc66be2b0d23c9d33142b907f9d50d68"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_shader_manifest.json": {
+      "size": 41090,
+      "sha256": "9ed4b2870a6e596ae449d798ae88b11d92e4c278463007078d789ad111e7d072"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass1.spv": {
+      "size": 45132,
+      "sha256": "7c1b054f4bab5aa750dbef6608375bdb68dcc54c3b70266f4a5e3c50b5ec51f8"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass10.spv": {
+      "size": 105448,
+      "sha256": "9c79eddfe54857763051e34f13228b30467d39e7bafa002140d7e4a9c6219b18"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass11.spv": {
+      "size": 120612,
+      "sha256": "76ff5502d19bc5aa40066ef1d3dbf8b63208e1b90726ac8c40d4347203e11d8c"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass12.spv": {
+      "size": 45128,
+      "sha256": "2de7d93e8cf55c3cd535f162a330d9046a6e935b316a328033542ddb7203f051"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass2.spv": {
+      "size": 45120,
+      "sha256": "9122d9ae53c86918459498d32f385b30183b9dd105d0e27bf112815a6c05f13a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass3.spv": {
+      "size": 57520,
+      "sha256": "c873e592881004234837a6bbe6e1dba8060feea6208bde30d0ef2ac11ec05ce9"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass4.spv": {
+      "size": 105456,
+      "sha256": "f837e7eacd7818c1bb5fbb1e7b8fe6ec45f7ba00e929207e97d6e7b91f5d8e74"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass5.spv": {
+      "size": 105440,
+      "sha256": "4c4adf66da82ac501f7c1466e2e892f3060b6254ff62444bd292b1aac786174f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass6.spv": {
+      "size": 222364,
+      "sha256": "172286386d8bf732f153641563f762a8f9ae50213aabffdac92418329e35f399"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass7.spv": {
+      "size": 503680,
+      "sha256": "229a50ec3a47302dc7492f5d2478bc60cf010cc451a45d010a62fe753ce7677f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass8.spv": {
+      "size": 503444,
+      "sha256": "03dd20e4e1998bf2b3a298a66bbb03529a2b4fffc26ce41417a45b7d733fdf9d"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pass9.spv": {
+      "size": 508600,
+      "sha256": "2a801fa58e8d51b3bb7635abe73bc859e07930752088ce74f41b5adb1f8ba120"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_post.spv": {
+      "size": 63408,
+      "sha256": "4e012f5e7ea6eaf064f74c3d29ab05501940353a89d4eea93c056640920244be"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_1080_pre.spv": {
+      "size": 46376,
+      "sha256": "aec5ce1b0198acc3e18f875ce42ce8e77c6cf94ddf383837d3cbbb9252540170"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass1.spv": {
+      "size": 45132,
+      "sha256": "b5d89bd04770a9bc2cba2e97bfbc09e9b9787f63b0b8008797c06606bbfa6af9"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass10.spv": {
+      "size": 105448,
+      "sha256": "1441122d8a95e13badce462e5bbd89aeabb0fffe1f8fe4b4db61420789254525"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass11.spv": {
+      "size": 120612,
+      "sha256": "abed354b3a3885d40e1705308ac3fe913703e1be5e52537ad5ce7ebb1e76a474"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass12.spv": {
+      "size": 45128,
+      "sha256": "1b3231af40fcc2bd290b2860fd946e02e36abe0cf4f2c98f03cc18f8277fdbd1"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass2.spv": {
+      "size": 45120,
+      "sha256": "44112d6aee64ee7a324f733e3a39951e68e7c41379e90bb33bbfc679ef8baa60"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass3.spv": {
+      "size": 57520,
+      "sha256": "b3562f8ad174f73fc0453ef4b78938ddb41fab0db429a318f6e8b43ae69e8133"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass4.spv": {
+      "size": 105456,
+      "sha256": "2c250af329653d51c37787d459949b3e777900990ed5d7d44322a6d0c1e0407d"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass5.spv": {
+      "size": 105440,
+      "sha256": "1dbbcfc5ace98a70b73d8816825eddd75e9dbbdae8223cb94fde05f4c5f03912"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass6.spv": {
+      "size": 222364,
+      "sha256": "14478fdf678963ff4fbcdf627a6c1efeefbe02cede5d93bf17a8bdfdd27fedd9"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass7.spv": {
+      "size": 503680,
+      "sha256": "0a44277d3931766b48399c950c2b0908c0107bf7a7b2e68fb55be5c0893920ab"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass8.spv": {
+      "size": 503444,
+      "sha256": "e2a1cbfdc6944dbc8bd3e8efad864961465bb39a5feb43b91b6b16615d24121c"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pass9.spv": {
+      "size": 508600,
+      "sha256": "e2496ce840906c13209e7427f3cdcafc61452c593892ad6a2e7b6af57bfc3cb6"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_post.spv": {
+      "size": 63408,
+      "sha256": "bda72ae411984ef203a0fe09afc21340ebb79f1cbedf7e59fadf356a134cf978"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pre.spv": {
+      "size": 46376,
+      "sha256": "f25d56545b170eedf61e414d4409dbcdb30180f3c4f27759e2b51b73b99ba50b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_initializers.bin": {
+      "size": 89216,
+      "sha256": "6fce93853235bbf8742210fb2bfd8653b70c90c722af17f5a37d1a3390156356"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_pre_weights.bin": {
+      "size": 1024,
+      "sha256": "f125f216cbe7ea37ab621edf9b0c9a5ccc0e969f6a4d1d483c20637bac1fb046"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_shader_manifest.json": {
+      "size": 40906,
+      "sha256": "7ffc906ab0aeae98ad42c3798f18948bb4a8198fdf9804d5e6a40eff403edf6f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass1.spv": {
+      "size": 45132,
+      "sha256": "6da83fd2bc2cf45b803afd11934663955703e32caf8ca3d17f7f36b7f09d0e6a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass10.spv": {
+      "size": 105404,
+      "sha256": "369d6c3c511f37571e37aca6f5d2b827e3435a44b3548658f55908f4c34e8a75"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass11.spv": {
+      "size": 120612,
+      "sha256": "da68362919768cfd3a46b3b5dfd42b14fa5c2e212b4d123fab81386d0595d57d"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass12.spv": {
+      "size": 45128,
+      "sha256": "9ff101cf630d75b808ac3e6c1864031efc1398b385e3f491e615c07b5e7c51bd"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass2.spv": {
+      "size": 45120,
+      "sha256": "34df22b89cb8b5dd33c394e2ee156588b89eae6d4c51f227c2c96fd0ba0d206b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass3.spv": {
+      "size": 57520,
+      "sha256": "58c7bcc16255d4cbebaa27fa8ba13624943573579157e80275aa15b350fa1e5e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass4.spv": {
+      "size": 105456,
+      "sha256": "0c191d3c7cfd955b4dbff96f7b49501d7a18bea9df909251be6c6c6d44220d07"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass5.spv": {
+      "size": 105440,
+      "sha256": "fb0975554a59086c066a4dae87be5ef775fc6941cdd402918a5382f2ee34b408"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass6.spv": {
+      "size": 222304,
+      "sha256": "05a8cb810363187729227a9b73aef4f165437b6536e24756dd5a971142541678"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass7.spv": {
+      "size": 503516,
+      "sha256": "6fc9dd50a762d12d53179ecbc610f76097bd1e13f48f5728edfcb14ceaa94429"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass8.spv": {
+      "size": 503628,
+      "sha256": "3997d78a1236d339b756f2a6c7ebd22a9c7b05c433efdd186448a90a41b5840b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pass9.spv": {
+      "size": 508420,
+      "sha256": "c2227d479444faa34f5c0a4e1ce4b3b745748f67f9e0d26d52fb497804641d0b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_post.spv": {
+      "size": 63408,
+      "sha256": "082c44372c1d0b41b0febef3c44e9ce51e2c590657989a67f61c16df91fa6419"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_1080_pre.spv": {
+      "size": 46376,
+      "sha256": "c31b7c87af1157a481f49efc366bcd268622057530fcaa8309283b977694e199"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass1.spv": {
+      "size": 45132,
+      "sha256": "a914a44db260379879d4ab808333c06b08c5289a51e766636b7c60310c7989b6"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass10.spv": {
+      "size": 105404,
+      "sha256": "e776a69a65a4352f0d75c9fb97411411ec0d3ce9e864b91050a3a08c5955bc80"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass11.spv": {
+      "size": 120612,
+      "sha256": "e75347e2ce66f3d44ade3f5e6ad33c372cd1e74563020c611590d65d8a7cef07"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass12.spv": {
+      "size": 45128,
+      "sha256": "6c5e59d92efd60ac226772b37b6183d64f38eef046ccb98a83cfe924af36882b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass2.spv": {
+      "size": 45120,
+      "sha256": "9d578dfe8a323e1efb89ea44b6e4c251b3c7a7b0a6df00cfd17be813a1ff7df5"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass3.spv": {
+      "size": 57520,
+      "sha256": "737409a8f72ab953597ce70ff0d7428992d35023183bc7d7fea054e9cc534ac2"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass4.spv": {
+      "size": 105456,
+      "sha256": "5ece35596533190735fa6bc7773b384cbb31563a3313e56d845e3177fbcfbe65"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass5.spv": {
+      "size": 105440,
+      "sha256": "e3292c79298a9a8e88a168d6fdb74d8992421cedbe02574cac624e37e274abd3"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass6.spv": {
+      "size": 222304,
+      "sha256": "2758143d40259ccaee37ae5351e69f69bac3955a46156745538e8ac5e150981f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass7.spv": {
+      "size": 503516,
+      "sha256": "41e11d8eedb2ca30b037e8c294d497882b988cd55b3b44261bab331e214181d1"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass8.spv": {
+      "size": 503628,
+      "sha256": "d22371cf492097e4255de76ec5b9ea2e18a7d66c6e51c17fe0dd54aac060678c"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pass9.spv": {
+      "size": 508420,
+      "sha256": "93a07e3843a7d695debcce1dc5e42379c87f09fc7c1f0598c64852d433903c98"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_post.spv": {
+      "size": 63408,
+      "sha256": "98155116bd0413af4e90514527e0193f606093bba6cafc026478f631a97031d0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_2160_pre.spv": {
+      "size": 46376,
+      "sha256": "bed4136dcae42ae12b9cc674c073af55145fb8c72cb9f30844a61265dbfcbc77"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_initializers.bin": {
+      "size": 89216,
+      "sha256": "666839fa4dd1232847a81231151f33391c4b8110a5c9808fc8c1cb7b4c5bb61b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_pre_weights.bin": {
+      "size": 1024,
+      "sha256": "18a895fc45db6a2391339ed54839c97dd7b3fb911bf306095b184271ada52c13"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_shader_manifest.json": {
+      "size": 40998,
+      "sha256": "045f6b34e1934ba3ed0529591282bdf2f8228ae36e88c5d57f1365d6a516ba98"
+    },
+    "fsr4_shaders/rcas.spv": {
+      "size": 18908,
+      "sha256": "03aa0e0729f67bb9907667526ed2d5d5f933030e7faa3acd953e3de109a54950"
+    },
+    "fsr4_shaders/spd_auto_exposure.spv": {
+      "size": 28924,
+      "sha256": "bf97092a75dcbd04ba2976278769beab15469df0eba8b986c10c2c5553c21595"
+    }
+  }
+}

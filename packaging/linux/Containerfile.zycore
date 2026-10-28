@@ -1,0 +1,11 @@
+FROM localhost/ps4rt-builder:cxx23
+
+RUN set -eux; \
+    git init /tmp/ps4rt-zycore; \
+    cd /tmp/ps4rt-zycore; \
+    git remote add origin https://github.com/zyantific/zycore-c.git; \
+    git fetch --depth 1 origin 75a36c45ae1ad382b0f4e0ede0af84c11ee69928; \
+    git checkout --detach FETCH_HEAD; \
+    cp -a include/Zycore /opt/ps4rt-deps/include/; \
+    test -f /opt/ps4rt-deps/include/Zycore/Defines.h; \
+    rm -rf /tmp/ps4rt-zycore

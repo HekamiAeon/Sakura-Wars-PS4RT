@@ -1,0 +1,115 @@
+# PS4RT portable builder: application development dependencies.
+# Builds ON TOP OF the already-successful glibc-2.35 / FFmpeg-8 builder image.
+# Do NOT rebuild/alter the FFmpeg image for each missing CMake package.
+FROM localhost/ps4rt-builder:jammy
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    CMAKE_PREFIX_PATH=/opt/ps4rt-deps \
+    CMAKE_INCLUDE_PATH=/opt/ps4rt-deps/include \
+    CPATH=/opt/ps4rt-deps/include \
+    PKG_CONFIG_PATH=/opt/ps4rt-deps/lib/pkgconfig:/opt/ps4rt-deps/lib/x86_64-linux-gnu/pkgconfig \
+    LD_LIBRARY_PATH=/opt/ps4rt-deps/lib
+
+# Ubuntu packages for build-time Linux video, display, controller, audio support.
+# User's previous successful CMake configure confirmed robin-map-dev exists in base image.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libasound2-dev libpulse-dev libpipewire-0.3-dev libdbus-1-dev libudev-dev \
+    libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxfixes-dev \
+    libxkbcommon-dev libxss-dev libxtst-dev libxrender-dev \
+    libwayland-dev wayland-protocols libdecor-0-dev \
+    libegl1-mesa-dev libgl1-mesa-dev libdrm-dev libgbm-dev \
+    libssl-dev zlib1g-dev liblzma-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+# Current Vulkan HEADERS only, not the loader, ICD, or driver.
+# Needed for VK_VALVE_shader_mixed_float_dot_product and 2026 Vulkan types.
+RUN set -eux; \
+    git clone --depth 1 --branch vulkan-sdk-1.4.350.1 \
+        https://github.com/KhronosGroup/Vulkan-Headers.git /tmp/ps4rt-vulkan-headers; \
+    cmake -S /tmp/ps4rt-vulkan-headers -B /tmp/ps4rt-vulkan-headers-build -G Ninja \
+        -DCMAKE_INSTALL_PREFIX=/opt/ps4rt-deps; \
+    cmake --install /tmp/ps4rt-vulkan-headers-build; \
+    test -f /opt/ps4rt-deps/include/vulkan/vulkan.hpp; \
+    rm -rf /tmp/ps4rt-vulkan-headers*
+
+# SDL3 with desktop Linux video, audio and input backend support.
+RUN set -eux; \
+    git clone --depth 1 --branch release-3.2.30 \
+        https://github.com/libsdl-org/SDL.git /tmp/ps4rt-sdl3; \
+    cmake -S /tmp/ps4rt-sdl3 -B /tmp/ps4rt-sdl3-build -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/ps4rt-deps \
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+        -DSDL_SHARED=ON -DSDL_STATIC=OFF -DSDL_TESTS=OFF -DSDL_EXAMPLES=OFF; \
+    cmake --build /tmp/ps4rt-sdl3-build -j 4; \
+    cmake --install /tmp/ps4rt-sdl3-build; \
+    pkg-config --exists sdl3; \
+    rm -rf /tmp/ps4rt-sdl3*
+
+# fmt v11, matching the Fedora host's dynamic fmt major.
+RUN set -eux; \
+    git clone --depth 1 --branch 11.2.0 https://github.com/fmtlib/fmt.git /tmp/ps4rt-fmt; \
+    cmake -S /tmp/ps4rt-fmt -B /tmp/ps4rt-fmt-build -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/ps4rt-deps \
+        -DBUILD_SHARED_LIBS=ON -DFMT_TEST=OFF -DFMT_DOC=OFF; \
+    cmake --build /tmp/ps4rt-fmt-build -j 4; \
+    cmake --install /tmp/ps4rt-fmt-build; \
+    test -e /opt/ps4rt-deps/lib/libfmt.so.11; \
+    rm -rf /tmp/ps4rt-fmt*
+
+# Zydis 5 is currently an unreleased development version. Pin its verified
+# revision explicitly rather than following master on every image rebuild.
+ARG ZYDIS_REV=a95bb71013436547f689fc0b380f48edf663066e
+RUN set -eux; \
+    git init /tmp/ps4rt-zydis; \
+    cd /tmp/ps4rt-zydis; \
+    git remote add origin https://github.com/zyantific/zydis.git; \
+    git fetch --depth 1 origin "${ZYDIS_REV}"; \
+    git checkout --detach FETCH_HEAD; \
+    git submodule update --init --recursive --depth 1; \
+    cmake -S . -B /tmp/ps4rt-zydis-build -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/ps4rt-deps \
+        -DZYDIS_BUILD_SHARED_LIB=ON -DZYDIS_BUILD_EXAMPLES=OFF \
+        -DZYDIS_BUILD_TOOLS=OFF -DZYDIS_BUILD_TESTS=OFF \
+        -DZYDIS_BUILD_DOXYGEN=OFF -DZYDIS_BUILD_MAN=OFF; \
+    cmake --build /tmp/ps4rt-zydis-build -j 4; \
+    cmake --install /tmp/ps4rt-zydis-build; \
+    test -e /opt/ps4rt-deps/lib/libZydis.so.5.0; \
+    rm -rf /tmp/ps4rt-zydis*
+
+# Vulkan Memory Allocator is header-only in this integration.
+RUN set -eux; \
+    git clone --depth 1 --branch v3.3.0 \
+        https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git /tmp/ps4rt-vma; \
+    install -Dm644 /tmp/ps4rt-vma/include/vk_mem_alloc.h \
+        /opt/ps4rt-deps/include/vma/vk_mem_alloc.h; \
+    rm -rf /tmp/ps4rt-vma
+
+# Fail the image build if any declared top-level project dependency is missing.
+RUN set -eux; \
+    pkg-config --modversion sdl3 libavformat libavcodec libavutil libswscale libswresample libxxhash x11; \
+    test -f /opt/ps4rt-deps/include/vma/vk_mem_alloc.h; \
+    test -f /opt/ps4rt-deps/include/vulkan/vulkan.hpp; \
+    test -e /opt/ps4rt-deps/lib/libZydis.so.5.0; \
+    test -e /opt/ps4rt-deps/lib/libfmt.so.11; \
+    command -v glslangValidator; \
+    command -v python3; \
+    command -v cmake; \
+    command -v ninja
+
+WORKDIR /work
+CMD ["bash"]
+
+# Make Zydis 5 discoverable by PS4RT's pkg-config fallback.
+RUN mkdir -p /opt/ps4rt-deps/lib/pkgconfig && \
+    printf '%s\n' \
+      'prefix=/opt/ps4rt-deps' \
+      'libdir=${prefix}/lib' \
+      'includedir=${prefix}/include' \
+      '' \
+      'Name: zydis' \
+      'Description: Zydis disassembler library' \
+      'Version: 5.0.0' \
+      'Libs: -L${libdir} -lZydis' \
+      'Cflags: -I${includedir}' \
+    > /opt/ps4rt-deps/lib/pkgconfig/zydis.pc && \
+    pkg-config --modversion zydis

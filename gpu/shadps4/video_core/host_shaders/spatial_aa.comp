@@ -1,0 +1,56 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// Spatial edge AA using the local-contrast/directional filtering approach of
+// Timothy Lottes' FXAA. This is a compact spatial filter, not temporal AA.
+// Algorithm reference: NVIDIA FXAA WhitePaper, 2011:
+// https://developer.download.nvidia.com/assets/gamedev/files/sdk/11/FXAA_WhitePaper.pdf
+#version 450
+layout(local_size_x=8, local_size_y=8) in;
+layout(binding=0) uniform texture2D input_image;
+layout(binding=1, rgba16f) writeonly uniform image2D output_image;
+layout(binding=2) uniform sampler input_sampler;
+// Share the FSR pass descriptor/push layout; Sample.y says input is already sRGB encoded.
+layout(push_constant) uniform Constants { uvec4 unused[4]; uvec4 sample_flags; } settings;
+
+vec3 encode(vec3 c) {
+    c = max(c, vec3(0));
+    return mix(1.055 * pow(c, vec3(1.0/2.4)) - 0.055, 12.92*c,
+               lessThanEqual(c, vec3(0.0031308)));
+}
+vec3 decode(vec3 c) {
+    return mix(pow(max((c+0.055)/1.055, vec3(0)), vec3(2.4)), c/12.92,
+               lessThanEqual(c, vec3(0.04045)));
+}
+vec3 read_color(vec2 uv) {
+    vec3 c = textureLod(sampler2D(input_image,input_sampler),uv,0).rgb;
+    return settings.sample_flags.y != 0 ? c : encode(c);
+}
+float luma(vec3 c) { return dot(c,vec3(0.299,0.587,0.114)); }
+void main() {
+    ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(output_image);
+    if (any(greaterThanEqual(p,size))) return;
+    vec2 step_uv = 1.0/vec2(size), uv = (vec2(p)+0.5)*step_uv;
+    vec4 original = texelFetch(sampler2D(input_image,input_sampler),p,0);
+    vec3 center = read_color(uv);
+    float nw = luma(read_color(uv+vec2(-1,-1)*step_uv));
+    float ne = luma(read_color(uv+vec2( 1,-1)*step_uv));
+    float sw = luma(read_color(uv+vec2(-1, 1)*step_uv));
+    float se = luma(read_color(uv+vec2( 1, 1)*step_uv));
+    float middle = luma(center);
+    float lo = min(middle,min(min(nw,ne),min(sw,se)));
+    float hi = max(middle,max(max(nw,ne),max(sw,se)));
+    if (hi-lo < max(1.0/32.0,hi/8.0)) {
+        imageStore(output_image,p,original);
+        return;
+    }
+    vec2 direction = vec2(sw+se-nw-ne,nw+sw-ne-se);
+    float reduce = max((nw+ne+sw+se)/32.0,1.0/128.0);
+    direction = clamp(direction/(min(abs(direction.x),abs(direction.y))+reduce),
+                      vec2(-8),vec2(8))*step_uv;
+    vec3 narrow = 0.5*(read_color(uv-direction/6.0)+read_color(uv+direction/6.0));
+    vec3 wide = 0.5*narrow+0.25*(read_color(uv-direction/2.0)+read_color(uv+direction/2.0));
+    float wide_luma = luma(wide);
+    vec3 filtered = wide_luma < lo || wide_luma > hi ? narrow : wide;
+    if (settings.sample_flags.y == 0) filtered = decode(filtered);
+    imageStore(output_image,p,vec4(filtered,original.a));
+}

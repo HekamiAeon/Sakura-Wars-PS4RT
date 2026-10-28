@@ -1,0 +1,35 @@
+# Source release: only the reviewed source/build roots are tracked.
+/*
+!/.gitignore
+!/.gitattributes
+!/LICENSE
+!/README.md
+!/build.sh
+!/run.sh
+!/src/
+!/gpu/
+!/scripts/
+!/tests/
+!/third_party/
+!/fsr4_shaders/
+!/docs/
+!/packaging/
+!/tools/
+!/patches/
+
+# Game files, saves, generated outputs and build trees at any depth.
+**/out/
+**/build/
+**/dist/
+**/original/
+**/analysis/
+**/savedata/
+**/saves/
+**/user/
+**/cache/
+**/caches/
+**/captures/
+**/screenshots/
+**/__pycache__/
+**/CMakeFiles/
+*.log
