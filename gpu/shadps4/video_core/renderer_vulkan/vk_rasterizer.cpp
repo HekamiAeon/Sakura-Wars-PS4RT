@@ -2082,6 +2082,26 @@ void Rasterizer::BindBuffers(const Shader::Info& stage, const PreparedStage* pre
             std::printf("PS4RT: Sakura outlines %s\n", outlines == 1 ? "silhouettes only" : "off");
         }
     };
+    // ps4rt: graphics presets Medium and Lowest (CUSA16429): the dash's camera motion blur with
+    // half its samples, in a copy of its constants (sakura_scene.h).
+    const auto ApplyDashBlur = [&](u32 buffer_index, std::span<const u8> bytes, u64 adjust) {
+        if (stage.pgm_hash != SakuraScene::DashBlurFs ||
+            stage.sw_stage != Shader::SwStage::Fragment ||
+            buffer_index != SakuraScene::DashBlurBuffer || stage.buffers[buffer_index].is_written)
+            return;
+        const int divisor = SakuraScene::DashBlurSampleDivisor(Ps4RtSettings::Get().graphics_preset);
+        std::array<u8, SakuraScene::DashBlurMaxBytes> copy{};
+        float samples = 0, scaled = 0;
+        if (adjust >= alignment ||
+            !SakuraScene::ScaleDashBlurSamples(bytes, copy, divisor, samples, scaled))
+            return;
+        std::array<u8, 2 * SakuraScene::DashBlurMaxBytes> padded{};
+        std::memcpy(padded.data() + adjust, copy.data(), bytes.size());
+        auto& stream = buffer_cache.GetStreamBuffer();
+        const u64 offset = stream.Copy(padded.data(), adjust + bytes.size(), alignment);
+        buffer_infos.back() =
+            vk::DescriptorBufferInfo{stream.Handle(), offset, adjust + bytes.size()};
+    };
     for (u32 buffer_index = 0; buffer_index < stage.buffers.size(); ++buffer_index) {
         const auto& desc = stage.buffers[buffer_index];
         const RingBinding* ring = num_ring_stages ? FindRingBinding(stage, buffer_index) : nullptr;
@@ -2106,6 +2126,7 @@ void Rasterizer::BindBuffers(const Shader::Info& stage, const PreparedStage* pre
             }
             buffer_infos.emplace_back(constant_ring->Handle(), ring->offset, ring->size);
             ApplyOutlines(buffer_index, {constant_ring->Data(ring->offset), ring->size}, 0);
+            ApplyDashBlur(buffer_index, {constant_ring->Data(ring->offset), ring->size}, 0);
         } else if (desc.IsSpecial()) {
             if (desc.buffer_type == Shader::BufferType::GdsBuffer) {
                 const auto* gds_buf = buffer_cache.GetGdsBuffer();
@@ -2196,6 +2217,10 @@ void Rasterizer::BindBuffers(const Shader::Info& stage, const PreparedStage* pre
                 buffer_infos.emplace_back(buffer->Handle(), offset_aligned, size + adjust);
                 if (size == SakuraScene::EdgeBytes && memory->IsValidGpuMapping(vsharp.base_address, 0))
                     ApplyOutlines(buffer_index, {reinterpret_cast<const u8*>(vsharp.base_address),
+                                                 size_t(size)}, adjust);
+                if (stage.pgm_hash == SakuraScene::DashBlurFs &&
+                    memory->IsValidGpuMapping(vsharp.base_address, 0))
+                    ApplyDashBlur(buffer_index, {reinterpret_cast<const u8*>(vsharp.base_address),
                                                  size_t(size)}, adjust);
                 bound_buffers.emplace_back(buffer, offset, size, desc.is_written);
                 if (desc.is_written) {

@@ -2,6 +2,7 @@
 // CUSA16429 scene profile for Native AA: the PostEdge composite binds the main camera's view
 // constants and draws into the HDR scene color with the scene depth; FSR runs before tonemap.
 #pragma once
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -90,6 +91,34 @@ inline bool ApplyOutlineMode(std::span<const std::uint8_t> bytes,
         std::memcpy(copy.data() + 15 * 4, &zero, 4);
         std::memcpy(copy.data() + 23 * 4, &zero, 4);
     }
+    return true;
+}
+
+/// Camera motion blur (camera_motion_blur.ps), drawn in battle while a dash winds up: per pixel
+/// it loops over float word 5 of its constants (fragment slot 0) samples along the velocity,
+/// ramped by the game from 6 to 30 and back over each dash (12 to 23 ms per frame on a Radeon
+/// 610M; 3 to 4.6 ms with a quarter). The samples spread over the same blur length
+/// whatever their count, so fewer samples give a grainier blur, not a shorter one.
+constexpr unsigned long long DashBlurFs = 0xe7bad41d;
+constexpr unsigned DashBlurBuffer = 0, DashBlurSamplesWord = 5, DashBlurMaxBytes = 1024;
+/// Ps4RtEffects::Preset -> sample divisor: Medium and Lowest half, others all samples. (A
+/// quarter, 2 to 7 samples, showed stepped copies of the image while fighting.)
+inline int DashBlurSampleDivisor(int preset) {
+    return preset >= 2 ? 2 : 1;
+}
+/// A copy of the constants with the sample count divided by `divisor` (at least 2 samples);
+/// false when nothing changes or the count is not a plausible one (1 to 64).
+inline bool ScaleDashBlurSamples(std::span<const std::uint8_t> bytes,
+                                 std::array<std::uint8_t, DashBlurMaxBytes>& copy, int divisor,
+                                 float& samples, float& scaled) {
+    constexpr unsigned offset = DashBlurSamplesWord * 4;
+    if (divisor <= 1 || bytes.size() < offset + 4 || bytes.size() > DashBlurMaxBytes) return false;
+    std::memcpy(&samples, bytes.data() + offset, 4);
+    if (!(samples >= 1.0f && samples <= 64.0f)) return false;
+    scaled = std::max(2.0f, std::floor(samples / float(divisor)));
+    if (scaled >= samples) return false;
+    std::memcpy(copy.data(), bytes.data(), bytes.size());
+    std::memcpy(copy.data() + offset, &scaled, 4);
     return true;
 }
 
