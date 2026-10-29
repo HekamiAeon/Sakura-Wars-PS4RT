@@ -133,6 +133,13 @@ public:
     /// Marks an image as dirty if it exists at the provided address.
     void InvalidateMemoryFromGPU(VAddr address, size_t max_size);
 
+    /// ps4rt: the GPU filled [address, address + size) with the dword `value` (the game's fill
+    /// shader, vk_shader_hle.cpp). An image that the fill covers exactly, single-level and
+    /// in a format whose texels are then all `value`'s bytes, is cleared to that value instead of
+    /// being detiled and uploaded from the buffer on its next use. Other images at `address`
+    /// are marked stale like after any buffer write. Returns the number of images cleared.
+    u32 FillMemoryFromGPU(VAddr address, size_t size, u32 value);
+
     /// Evicts any images that overlap the unmapped range.
     void UnmapMemory(VAddr cpu_addr, size_t size);
 

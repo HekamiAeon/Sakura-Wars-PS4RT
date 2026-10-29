@@ -238,11 +238,83 @@ static bool ExecuteCopyShaderHLE(const Shader::Info& info, const AmdGpu::Compute
     return true;
 }
 
+// ps4rt: CUSA16429's fill shader (64 threads per group): dst[i] = pattern[i & mask] for
+// i < min(count, user data 6), where count and mask are the control buffer's first two dwords.
+// The game clears its 1080p render targets with it about 11 times per battle frame; as a raw
+// buffer write each one left the cached image stale, and its next use detiled and uploaded the
+// whole buffer (on a Radeon 610M 15 of 62 ms per frame). A single-value pattern becomes a
+// buffer fill, and images the fill covers exactly are cleared on the GPU instead
+// (TextureCache::FillMemoryFromGPU). Anything else runs the shader. On by default;
+// PS4RT_FILL_CLEAR=0 runs the shader as before.
+static constexpr u64 FILL_SHADER_HASH = 0x4523916b;
+
+static bool ExecuteFillShaderHLE(const Shader::Info& info, const AmdGpu::ComputeProgram& cs_program,
+                                 Rasterizer& rasterizer) {
+    static const bool enabled = [] {
+        const char* v = std::getenv("PS4RT_FILL_CLEAR");
+        return !(v && *v == '0');
+    }();
+    if (!enabled) {
+        return false;
+    }
+    if (info.buffers.size() != 3 || cs_program.dim_y != 1 || cs_program.dim_z != 1 ||
+        cs_program.start_x != 0 || cs_program.num_thread_x.full != 64) {
+        return false;
+    }
+    const auto& ctl = info.buffers[0];
+    const auto& pattern = info.buffers[1];
+    const auto& dst = info.buffers[2];
+    if (ctl.IsSpecial() || pattern.IsSpecial() || dst.IsSpecial() || ctl.is_written ||
+        pattern.is_written || !dst.is_written) {
+        return false;
+    }
+    const auto ctl_sharp = ctl.GetSharp(info);
+    const auto pattern_sharp = pattern.GetSharp(info);
+    const auto dst_sharp = dst.GetSharp(info);
+    auto& buffer_cache = rasterizer.GetBufferCache();
+    const auto ud = info.UserData();
+    if (ctl_sharp.base_address == 0 || pattern_sharp.base_address == 0 ||
+        dst_sharp.base_address == 0 || ctl_sharp.GetSize() < 8 || ud.size() <= 6 ||
+        (dst_sharp.base_address & 3) ||
+        // The control and pattern dwords are read from guest memory: not when the GPU wrote them.
+        buffer_cache.IsRegionGpuModified(ctl_sharp.base_address, 8)) {
+        return false;
+    }
+    const auto* ctl_data = reinterpret_cast<const u32*>(ctl_sharp.base_address);
+    const u32 count = ctl_data[0];
+    const u32 mask = ctl_data[1];
+    const u64 pattern_dwords = u64(mask) + 1;
+    if (mask >= 64 || pattern_dwords * 4 > pattern_sharp.GetSize() ||
+        buffer_cache.IsRegionGpuModified(pattern_sharp.base_address, pattern_dwords * 4)) {
+        return false;
+    }
+    const auto* pattern_data = reinterpret_cast<const u32*>(pattern_sharp.base_address);
+    const u32 value = pattern_data[0];
+    for (u64 i = 1; i < pattern_dwords; ++i) {
+        if (pattern_data[i] != value) {
+            return false;
+        }
+    }
+    const u64 dwords = std::min({u64(count), u64(ud[6]), u64(cs_program.dim_x) * 64,
+                                 u64(dst_sharp.GetSize() / 4)});
+    if (dwords == 0) {
+        return true;
+    }
+    const u32 bytes = static_cast<u32>(dwords * 4);
+    auto& texture_cache = rasterizer.GetTextureCache();
+    texture_cache.FillMemoryFromGPU(dst_sharp.base_address, bytes, value);
+    const auto [buffer, offset] = buffer_cache.ObtainBuffer(dst_sharp.base_address, bytes, true);
+    rasterizer.GetRuntime().FillBuffer(buffer, offset, bytes, value);
+    return true;
+}
+
 bool ExecuteShaderHLE(const Shader::Info& info, const AmdGpu::Regs& regs,
                       const AmdGpu::ComputeProgram& cs_program, Rasterizer& rasterizer) {
     switch (info.pgm_hash) {
     case COPY_SHADER_HASH:
         return ExecuteCopyShaderHLE(info, cs_program, rasterizer);
+    case FILL_SHADER_HASH:
+        return ExecuteFillShaderHLE(info, cs_program, rasterizer);
     default:
         return false;
     }

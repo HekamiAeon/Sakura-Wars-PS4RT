@@ -602,6 +602,85 @@ void TextureCache::InvalidateMemoryFromGPU(VAddr address, size_t max_size) {
     });
 }
 
+namespace {
+float HalfToFloat(u16 h) {
+    const u32 sign = u32(h >> 15) << 31;
+    const u32 exponent = (h >> 10) & 0x1f;
+    u32 mantissa = h & 0x3ff;
+    if (exponent == 0) { // zero or subnormal: mantissa * 2^-24
+        const float f = float(mantissa) / 16777216.0f;
+        return sign ? -f : f;
+    }
+    return std::bit_cast<float>(sign | ((exponent + 112) << 23) | (mantissa << 13));
+}
+// The clear colour whose texels hold the bytes of `value` repeated, for the formats the fill
+// shader clears in CUSA16429; false for others (and NaN or infinity, not cleared exactly).
+bool FillClearValue(vk::Format format, u32 value, vk::ClearValue& clear) {
+    const auto byte = [value](u32 i) { return float((value >> (8 * i)) & 0xff) / 255.0f; };
+    switch (format) {
+    case vk::Format::eR8G8B8A8Unorm:
+        clear.color.float32 = std::array{byte(0), byte(1), byte(2), byte(3)};
+        return true;
+    case vk::Format::eB8G8R8A8Unorm:
+        clear.color.float32 = std::array{byte(2), byte(1), byte(0), byte(3)};
+        return true;
+    case vk::Format::eR8Unorm:
+        if (value != (value & 0xff) * 0x01010101u) return false;
+        clear.color.float32 = std::array{byte(0), 0.0f, 0.0f, 0.0f};
+        return true;
+    case vk::Format::eR16G16B16A16Sfloat: {
+        const u16 lo = value & 0xffff, hi = value >> 16;
+        if ((lo & 0x7c00) == 0x7c00 || (hi & 0x7c00) == 0x7c00) return false;
+        const float l = HalfToFloat(lo), h = HalfToFloat(hi);
+        clear.color.float32 = std::array{l, h, l, h};
+        return true;
+    }
+    case vk::Format::eR32Sfloat:
+    case vk::Format::eR32G32Sfloat:
+    case vk::Format::eR32G32B32A32Sfloat: {
+        const float f = std::bit_cast<float>(value);
+        if ((value & 0x7f800000) == 0x7f800000) return false;
+        clear.color.float32 = std::array{f, f, f, f};
+        return true;
+    }
+    case vk::Format::eR32Uint:
+    case vk::Format::eR32G32Uint:
+    case vk::Format::eR32G32B32A32Uint:
+        clear.color.uint32 = std::array{value, value, value, value};
+        return true;
+    default:
+        return false;
+    }
+}
+} // namespace
+
+u32 TextureCache::FillMemoryFromGPU(VAddr address, size_t size, u32 value) {
+    ResolveReadbacks(address, size, true, ReadbackSource::GpuPartialWrite);
+    std::scoped_lock lock{mutex};
+    u32 cleared = 0;
+    ForEachImageInRegion(address, size, [&](ImageId image_id, Image& image) {
+        if (image.info.guest_address != address) {
+            return;
+        }
+        InvalidateAlias(image);
+        const auto& info = image.info;
+        vk::ClearValue clear{};
+        // CPU-dirty images keep the upload: it also re-arms their write tracking.
+        if (size >= info.guest_size && info.resources.levels == 1 &&
+            info.resources.layers == 1 && info.guest_samples <= 1 && !info.props.is_depth &&
+            info.type != AmdGpu::ImageType::Color3D &&
+            False(image.flags & (ImageFlagBits::CpuDirty | ImageFlagBits::MaybeCpuDirty)) &&
+            FillClearValue(info.pixel_format, value, clear)) {
+            image.flags &= ~ImageFlagBits::GpuDirty;
+            runtime.ClearImage(&image, SubresourceRange{.extent = info.resources}, clear);
+            ++cleared;
+            return;
+        }
+        image.flags |= ImageFlagBits::GpuDirty;
+    });
+    return cleared;
+}
+
 void TextureCache::UnmapMemory(VAddr cpu_addr, size_t size) {
     CancelReadbacks(cpu_addr, size);
     std::scoped_lock lk{mutex};
