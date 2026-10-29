@@ -83,6 +83,10 @@ struct Values {
     /// (30: no hook for this game, the menu hides the option).
     std::atomic<int> framerate{30};
     std::atomic<int> framerate_max{30};
+    /// Ps4RtEffects::Preset (ps4rt_effects.h): 0 Max (the game's effects) to 3 Lowest; live. The
+    /// menu shows it once the game's hook is found.
+    std::atomic<int> graphics_preset{0};
+    std::atomic<bool> graphics_preset_available{false};
     int startup_anisotropy = 0;
     /// Set before an "Apply and restart"; cleared once the new launch shows the game. run.py
     /// restores the previous startup options when a launch never cleared it.

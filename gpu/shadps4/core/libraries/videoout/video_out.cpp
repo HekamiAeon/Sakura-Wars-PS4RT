@@ -12,6 +12,7 @@
 #include "core/libraries/videoout/videoout_error.h"
 #include "core/platform.h"
 #include "ps4rt_framerate.h"
+#include "ps4rt_effects.h"
 #include "video_core/renderer_vulkan/vk_presenter.h"
 
 extern std::unique_ptr<Vulkan::Presenter> presenter;
@@ -147,6 +148,8 @@ extern "C" __attribute__((weak)) uintptr_t runtime_image_size; // ps4rt loader
 static void ApplyGameFramerate() {
     Ps4RtFramerate::OnFlip(&runtime_image_base ? runtime_image_base : 0,
                            &runtime_image_size ? runtime_image_size : 0);
+    Ps4RtEffects::OnFlip(&runtime_image_base ? runtime_image_base : 0,
+                         &runtime_image_size ? runtime_image_size : 0);
 }
 
 s32 PS4_SYSV_ABI sceVideoOutSetFlipRate(s32 handle, s32 rate) {

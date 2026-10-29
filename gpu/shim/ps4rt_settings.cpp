@@ -116,6 +116,8 @@ void Set(Values& v, const std::string& key, const std::string& value) {
         v.outlines = i == 2 ? 2 : 0; // Native (0) and Off (2)
     } else if (key == "framerate") {
         v.framerate = Ps4RtGraphics::ParseFramerate(i);
+    } else if (key == "graphics_preset") {
+        v.graphics_preset = std::clamp(i, 0, 3);
     } else if (key == "vibration") {
         v.vibration = value.empty() ? 100 : std::clamp(i, 0, 100);
     } else if (key == "restart_unconfirmed") {
@@ -185,7 +187,7 @@ void Load() {
         {"PS4RT_STALE_READBACK", "stale_readback"},     {"PS4RT_FSR1", "fsr1"},
         {"PS4RT_RCAS", "rcas"},                        {"PS4RT_FRAMES_AHEAD", "frames_queued"},
         {"PS4RT_ANISOTROPY", "anisotropy"},            {"PS4RT_VIBRATION", "vibration"},
-        {"PS4RT_FRAMERATE", "framerate"},
+        {"PS4RT_FRAMERATE", "framerate"},          {"PS4RT_GRAPHICS_PRESET", "graphics_preset"},
     };
     for (const auto& [env, key] : env_keys) {
         if (const char* value = std::getenv(env); value && value[0]) {
@@ -335,6 +337,7 @@ void Save() {
     std::fprintf(file, "spatial_aa=%d\n", int(v.spatial_aa.load()));
     std::fprintf(file, "outlines=%d\n", v.outlines.load());
     std::fprintf(file, "framerate=%d\n", v.framerate.load());
+    std::fprintf(file, "graphics_preset=%d\n", v.graphics_preset.load());
     std::fprintf(file, "fsr_jitter=%d\n", int(v.fsr_jitter.load()));
     // Read by run.sh at start.
     std::fprintf(file, "live_resolution=%s\n", v.live_resolution < 0 ? "auto"

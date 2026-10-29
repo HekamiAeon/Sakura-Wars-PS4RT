@@ -414,6 +414,19 @@ void FramerateRow() {
               "chosen rate, the game runs slower instead of skipping frames.");
 }
 
+// The game's post effects turned down, when the game has the hook (ps4rt_effects.h). Live.
+void GraphicsPresetRow() {
+    auto& s = Ps4RtSettings::Get();
+    if (!s.graphics_preset_available) return;
+    static const char* const labels[] = {"Max (original)", "High", "Medium", "Lowest"};
+    ChoiceRow("Graphics preset", s.graphics_preset, labels, nullptr, 4,
+              "For slower GPUs such as the Steam Deck. High turns off contact shadows and bloom; "
+              "Medium also uses FXAA instead of SMAA and a lower-resolution depth of field; "
+              "Lowest also turns off anti-aliasing, the outlines and depth of field (about a "
+              "third faster on weak GPUs; some battle effects such as sword trails go with "
+              "depth of field). Applies live.");
+}
+
 void CompactGraphics() {
     auto& s = Ps4RtSettings::Get();
     if (BeginRows("##scene_image")) {
@@ -454,6 +467,7 @@ void CompactGraphics() {
         static constexpr int outline_values[] = {0, 2};
         ChoiceRow("Outlines", s.outlines, outline_labels, outline_values, 2,
                   "The game's ink outlines on walls and surfaces. Off removes them, including the lines on surface creases (walls, mouldings) that can break up and flicker; characters keep their own outlines. Applies live.");
+        GraphicsPresetRow();
         Row("Sharpening");
         int strength = s.sharpen ? int(s.sharpness * 100.0f + 0.5f) : 0;
         if (ImGui::SliderInt("##value", &strength, 0, 100, "%d%%")) {
@@ -534,6 +548,7 @@ void PerformanceTab() {
     ImGui::SeparatorText("Live");
     if (BeginRows("##live")) {
         FramerateRow();
+        GraphicsPresetRow();
         static const char* const fps_labels[] = {"30", "60", "120", "240", "Unlimited"};
         ChoiceRow("Frame rate limit", s.fps_limit, fps_labels, G::FpsLimits.data(), int(G::FpsLimits.size()),
                   "Caps the frame rate. The engine frame rate (below) is the highest it can go.");
