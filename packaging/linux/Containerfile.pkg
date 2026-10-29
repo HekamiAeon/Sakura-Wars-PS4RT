@@ -1,0 +1,10 @@
+FROM localhost/ps4rt-builder:linux
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends libcrypto++-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && pkg-config --exists 'libcrypto++' zlib \
+    && test -f /usr/include/crypto++/cryptlib.h
+
+WORKDIR /work
+CMD ["bash"]
