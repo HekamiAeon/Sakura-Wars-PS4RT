@@ -421,8 +421,9 @@ void GraphicsPresetRow() {
     static const char* const labels[] = {"Max (original)", "High", "Medium", "Lowest"};
     ChoiceRow("Graphics preset", s.graphics_preset, labels, nullptr, 4,
               "For slower GPUs such as the Steam Deck. High turns off contact shadows and bloom; "
-              "Medium also uses FXAA instead of SMAA, a lower-resolution depth of field and "
-              "half the dash motion blur samples; "
+              "Medium also uses FXAA instead of SMAA, a lower-resolution depth of field, "
+              "half the dash motion blur samples and no character screen-space shadow "
+              "(cutscenes); "
               "Lowest also turns off anti-aliasing, the outlines and depth of field (about a "
               "third faster on weak GPUs; some battle effects such as sword trails go with "
               "depth of field). Applies live.");
