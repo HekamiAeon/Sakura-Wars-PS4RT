@@ -56,6 +56,14 @@ class RememberedGameTests(unittest.TestCase):
             self.call()
         self.assertFalse(self.saved.exists())
 
+    def test_first_launch_message_points_to_player_readme(self):
+        with self.assertRaises(launcher.SetupError) as raised:
+            self.call()
+        message = str(raised.exception)
+        self.assertIn('First launch:\n', message)
+        self.assertIn('PLAYER_README.txt', message)
+        self.assertNotIn('First launch: Run:', message)
+
     def test_first_launch_remembers_and_next_launch_reuses(self):
         with self.assertRaises(ProcessReplaced):
             self.call('--game', str(self.game))

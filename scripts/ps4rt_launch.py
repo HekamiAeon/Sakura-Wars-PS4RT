@@ -29,15 +29,16 @@ def _select_game_folder(explicit: Path | None, remembered: Path) -> Path:
     Explicit --game always wins, even if a different valid folder was saved.
     Invalid, moved, or missing folders fail with an actionable first-run hint.
     """
-    hint = ('Run: bash Play-Game.sh --game '
-            '"/absolute/path/to/CUSA16429"')
+    hint = ('First launch:\n'
+            '  bash Play-Game.sh --game "/absolute/path/to/CUSA16429"\n\n'
+            'For setup instructions, see PLAYER_README.txt.')
     if explicit is None:
         try:
             saved = remembered.read_text(encoding='utf-8').strip()
         except (OSError, UnicodeError):
             saved = ''
         if not saved:
-            raise SetupError('Game folder not configured. First launch: ' + hint)
+            raise SetupError('Game folder not configured.\n\n' + hint)
         candidate = Path(saved)
     else:
         candidate = explicit
