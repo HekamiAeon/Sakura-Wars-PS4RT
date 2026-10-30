@@ -35,6 +35,8 @@ libraries.**
 bash Play-Game.sh --game "/path/to/CUSA16429"
 ```
 
+**After a successful first setup**, the validated game folder is remembered inside the portable. For future launches, simply run `bash Play-Game.sh`. Supply `--game` again if you move the extracted folder or want to select a different copy. Failed updates never replace the remembered path.
+
 **That's all you need to begin setup.** Keep the extracted release folder
 together and writable. Paths containing spaces must be inside quotes, as
 shown. The first run prepares the game's working files inside the portable.

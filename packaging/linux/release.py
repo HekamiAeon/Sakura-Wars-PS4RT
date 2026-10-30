@@ -21,7 +21,7 @@ ROOT_DIRS = {'src', 'gpu', 'scripts', 'third_party', 'tests', 'tools', 'packagin
              'fsr4_shaders', 'patches'}
 PUBLIC_DOCS = {'docs/RUNNING_LINUX.md', 'docs/DISTRIBUTING_LINUX.md',
                'docs/UPSTREAM_CREDITS.md', 'docs/LINUX_BINARY_RELEASE.md',
-               'docs/THIRD_PARTY_REVIEW.md', 'docs/PLAYER_PKG_SETUP.md'}
+               'docs/PLAYER_PKG_SETUP.md'}
 # The public README embeds this reviewed screenshot; no other screenshots are exported.
 PUBLIC_MEDIA = {'docs/images/sample.png'}
 PRIVATE_PARTS = {'.git', '.agents', '.codex', '.ghidra', 'agents', 'references',
@@ -94,6 +94,10 @@ def source_allowed(name):
                  p.suffix.lower() in ('.spv', '.bin')) or
                 p.name in ('rcas.spv', 'spd_auto_exposure.spv') or
                 p.name.lower() in ('readme.md', 'license', 'license-fsr4-v07.txt'))
+    # This exact build recipe is source code, not a PS4 game .pkg.
+    # All other .pkg files remain forbidden by PRIVATE_EXTS.
+    if name == 'packaging/linux/Containerfile.pkg':
+        return True
     if p.suffix.lower() in PRIVATE_EXTS:
         return False
     if name in ROOT_FILES or name in PUBLIC_DOCS or name in PUBLIC_MEDIA or name.startswith('docs/licenses/'):
@@ -103,7 +107,7 @@ def source_allowed(name):
     if parts[:2] == ('tools', 'lab'):
         return False
     if parts[:2] == ('gpu', 'assets'):
-        return name in MEDIA or name == 'gpu/assets/README.md'
+        return name in MEDIA
     # CMake embeds this reviewed Bitstream/DejaVu licensed font into the GPU .so.
     if name == 'gpu/third_party/fonts/DejaVuSans.ttf':
         return True
@@ -219,7 +223,8 @@ def runtime_entries(source, bundle, audited):
     result['Play-Game.sh'] = (launcher, 0o755)
     result['PLAYER_README.txt'] = (
         b'PS4RT Linux x86-64 (glibc 2.35+)\n'
-        b'Extract and run: bash Play-Game.sh --game "/path/to/CUSA16429"\n'
+        b'First launch: bash Play-Game.sh --game "/path/to/CUSA16429"\n'
+        b'Later launches: bash Play-Game.sh (game path remembered).\n'
         b'This port requires game update v1.01. Select your own update PKG when prompted.\n'
         b'Optional player-owned DLC can be installed with the bundled setup interface.\n'
         b'Use your own legally obtained extracted PS4 data.\n'

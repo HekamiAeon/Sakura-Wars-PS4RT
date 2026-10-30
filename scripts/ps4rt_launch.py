@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import shlex
 import sys
+import tempfile
 from prepare import load_sfo, prepare
 from link_modules import link
 from content_profile import prepare as prepare_content
@@ -20,6 +21,51 @@ from patch_assembly import incomplete_marker
 
 ROOT = Path(__file__).resolve().parent.parent
 TITLE_ID_PATTERN = re.compile(r'CUSA\d{5}\Z')
+
+
+def _select_game_folder(explicit: Path | None, remembered: Path) -> Path:
+    """Resolve the player's game folder without changing remembered state.
+
+    Explicit --game always wins, even if a different valid folder was saved.
+    Invalid, moved, or missing folders fail with an actionable first-run hint.
+    """
+    hint = ('Run: bash Play-Game.sh --game '
+            '"/absolute/path/to/CUSA16429"')
+    if explicit is None:
+        try:
+            saved = remembered.read_text(encoding='utf-8').strip()
+        except (OSError, UnicodeError):
+            saved = ''
+        if not saved:
+            raise SetupError('Game folder not configured. First launch: ' + hint)
+        candidate = Path(saved)
+    else:
+        candidate = explicit
+    try:
+        game = candidate.expanduser().resolve(strict=True)
+    except (OSError, RuntimeError) as error:
+        raise SetupError(f'Game folder does not exist: {candidate}. {hint}') from error
+    if not game.is_dir():
+        raise SetupError(f'Expected the extracted CUSA16429 directory: {game}. {hint}')
+    return game
+
+
+def _remember_game_folder(destination: Path, game: Path) -> None:
+    """Atomically save only a successfully prepared game location.
+
+    Keep this in the portable's existing out/CUSA16429 directory alongside
+    saves and settings. Never replace that directory or move player data.
+    """
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8',
+                                     prefix='.game-folder-',
+                                     dir=destination.parent, delete=False) as stream:
+        temporary = Path(stream.name)
+        stream.write(str(game) + '\n')
+    try:
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _restart_after_setup(args, game: Path, *, include_dlc_pkgs: bool, stage: str) -> None:
@@ -56,8 +102,9 @@ def _restart_after_dlc(args, game: Path) -> None:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--game', type=Path, required=True,
-                        help='Your extracted plaintext CUSAxxxxx game directory')
+    parser.add_argument('--game', type=Path,
+                        help='Your extracted plaintext CUSA16429 directory '
+                             '(remembered after successful preparation)')
     parser.add_argument('--dlc', type=Path,
                         help='Folder of extracted DLC packages (default: dlc/CUSAxxxxx if present)')
     parser.add_argument('--update-pkg', type=Path,
@@ -77,7 +124,8 @@ def main(argv=None) -> int:
                         help='Override the saved graphics setting for this launch')
     parser.add_argument('--output-resolution', choices=('1080', '1440', '4k'))
     args = parser.parse_args(argv)
-    original_game = args.game.expanduser().resolve(strict=True)
+    remembered = ROOT / 'out' / TITLE_ID / 'game-folder.txt'
+    original_game = _select_game_folder(args.game, remembered)
     title_id = str(load_sfo(original_game / 'sce_sys/param.sfo').get('TITLE_ID', ''))
     if not TITLE_ID_PATTERN.fullmatch(title_id) or title_id != TITLE_ID:
         parser.error(f'This port requires {TITLE_ID} game data')
@@ -137,6 +185,9 @@ def main(argv=None) -> int:
     link(game, out)
     addons = installed_addons(ROOT, args.dlc)
     prepare_content(game, out, 'full', addons)
+    # Persist only after the update, content verification and preparation succeed.
+    # The first v1.00 updater invocation restarts before reaching this point.
+    _remember_game_folder(remembered, original_game)
     if args.prepare_only:
         return 0
     user_dir = out / 'user'
