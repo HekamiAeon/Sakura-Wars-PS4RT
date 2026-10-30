@@ -1,7 +1,7 @@
 # Sakura Wars: portable Linux build
 
 This is the **same controlled Ubuntu 22.04 / GCC 14 / glibc 2.35 portability
-strategy** manually validated on the Star Ocean and Valkyria ports. Sakura Wars
+strategy** manually validated on the other PS4RT ports. Sakura Wars
 was started before the standardized Lab builder existed, so this is a manual
 retrofit. The Sakura Wars portable has been gameplay-tested on Fedora, including fresh v1.00 update installation, optional DLC setup, and first boot.
 
@@ -58,6 +58,6 @@ The portable archive selects `bin/ps4rt`, `bin/ps4rt-setup`, and
 - The vendored native extractor has upstream GPL notices in
   `third_party/ps4pkg/`. Distribute corresponding source and third-party
   notices with releases.
-- The older Star Ocean/Valkyria portable audits do **not** substitute for a
+- The older PS4RT portable audits do **not** substitute for a
   Sakura Wars clean-container build, package audit, update test, DLC test,
   and actual gameplay validation. Verify the final release archives and license obligations before publication.
