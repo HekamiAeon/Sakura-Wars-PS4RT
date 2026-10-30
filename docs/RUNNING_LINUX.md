@@ -1,90 +1,66 @@
-# Running on Linux
+# Running Sakura Wars PS4RT on Linux
 
-## 1. Install the build dependencies
+Sakura Wars PS4RT is an experimental, game-specific x86-64 Linux compatibility runtime for **CUSA16429 v1.01**. No game files are distributed. Players should use the prebuilt [v1.1 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1); compiling from source is for developers.
 
-You need CMake 3.24 or newer, Ninja, a C11/C++23 compiler (GCC or Clang), glslang
-(`glslang` or `glslangValidator`), pkg-config and Python 3, plus the development packages for:
+## 1. Download and run the portable
 
-- Vulkan (headers and loader)
-- SDL3 and X11
-- fmt, Boost, tsl-robin-map, xxHash, Zydis
-- FFmpeg
+1. Download **`Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz`** from the [v1.1 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1), not the source archive. Extract it into a writable directory.
+2. Provide your own extracted, plaintext **`CUSA16429`** directory containing `eboot.bin`, `sce_sys/param.sfo`, `sce_module/` and game data. Point to that directory itself, not the PKG, its parent, or the executable.
+3. Open a terminal inside the extracted player directory and run:
 
-Package names differ between distributions; search your package manager for the names
-above (development packages usually end in `-devel` or `-dev`).
-
-## 2. Build
-
-From the repository root:
-
-```sh
-bash build.sh
+```bash
+bash Play-Game.sh --game "/absolute/path/to/CUSA16429"
 ```
 
-The runtime is written to `out/ps4rt`, and its renderer library to `out/gpu/`.
-`bash build.sh --test` also builds and runs the test suite.
+**Later launches:** After successful preparation, run `bash Play-Game.sh` alone. The player remembers the validated path in `out/CUSA16429/game-folder.txt`. Use `--game` again if you move the extraction or select another copy. With no configured path, the launcher prints a first-launch command and points to `PLAYER_README.txt`. No graphical folder picker or Tkinter installation is required.
 
-## 3. Prepare your game dump
+**Game version:** An extracted v1.01 game starts normal preparation. An extracted v1.00 game requires your own matching v1.01 update PKG through the included native setup tool. **The update modifies the selected extracted CUSA16429 directory in place. Back up pristine v1.00 if you need to preserve it.** After a successful fresh update, optional DLC setup can be skipped or completed; the launcher then restarts into v1.01. An already updated v1.01 game does not repeat update/DLC prompts. See [Player update and DLC setup](PLAYER_PKG_SETUP.md).
 
-Use your own **plaintext (decrypted)** extraction of Sakura Wars, title ID
-**CUSA16429**, containing `eboot.bin` and `sce_sys/param.sfo`.
-The `--game` argument must point to this extracted CUSA directory, **not a
-base-game PKG**. No game files are distributed.
+## 2. Graphics, controls, and optional DLC
 
-The port requires **game update v1.01**. If your extracted game is v1.00,
-the launcher offers a graphical setup window to select and apply your own
-matching **v1.01 update PKG** using the bundled native extractor. The update
-modifies the selected CUSA folder **in place**, replacing its original v1.00
-files. **Make a separate backup first** if you need to keep v1.00. After
-successful installation, the launcher restarts its normal v1.01 boot path.
-If you already have v1.01, it skips this update step.
+Open PS4RT settings with **Insert** on a keyboard or **L2 + R3 click** on a gamepad. Navigate with the D-pad, confirm with Cross, and go back with Circle. Options include 1080p / 1440p / 4K output, Off / FSR 3.1 / FSR 4 v07 where supported, sharpening, AF, outlines, display mode, VSync, and the original 30 FPS / experimental 60 FPS modes.
 
-## 4. Run
+The v1.1 **Graphics preset** menu provides **Max (original)**, **High**, **Medium**, and **Lowest**. High disables contact shadows and bloom; Medium additionally reduces anti-aliasing, depth-of-field resolution, dash motion blur, and character screen-space shadows; Lowest also disables anti-aliasing, outlines, and depth of field. These presets apply live, but can change the look of some effects. **Anisotropic filtering requires a restart.** 4K output does not imply native 4K scene rendering.
 
-```sh
-./run.sh --game /path/to/CUSA16429
+FSR 4 requires compatible Vulkan GPU features, including INT8 dot-product support; FSR 3.1 is an alternative. Launch-time graphics overrides are optional:
+
+```bash
+bash Play-Game.sh --upscaler fsr4 --output-resolution 4k
 ```
 
-The first launch prepares the game in `out/CUSA16429/` (linked boot image and content
-profile). Later launches reuse it and start faster. Optional overrides for a single
-launch:
+For later DLC installation, use **Game > Install DLC...** in the overlay with your own compatible PKGs. New DLC loads after a restart. **Save your game before using Restart Game** or quitting, since graphics settings and game progress are saved separately.
 
-```sh
-./run.sh --game /path/to/CUSA16429 --upscaler fsr4 --output-resolution 4k
+## 3. Settings, saves, and private data
+
+Keep the extracted player directory together and writable. Generated files and player data live under `out/CUSA16429/`:
+
+- `out/CUSA16429/game-folder.txt`: remembered game directory.
+- `out/CUSA16429/ps4rt.ini`: graphics settings.
+- `out/CUSA16429/user/savedata/`: game saves.
+- `out/CUSA16429/user/gpu/cache/`: shader/pipeline caches; deleting a cache forces recompilation.
+- `out/CUSA16429/player-content/dlc/`: optional installed DLC.
+
+**Never redistribute `out/`**: it may contain game-derived code, DLC, saves, caches and private player data.
+
+## 4. Build from source (developers only)
+
+A source checkout requires CMake 3.24+, Ninja, a C11/C++23 compiler, pkg-config, Python 3, glslang, and development packages for Vulkan, SDL3/X11, fmt, Boost, tsl-robin-map, xxHash, Zydis, FFmpeg, **Crypto++ and zlib**. Package names differ by distribution. Players of the prebuilt archive need none of these developer tools, a separate PKG extractor, or a special `LD_LIBRARY_PATH`.
+
+```bash
+PS4RT_LTO=OFF bash build.sh --test
+bash run.sh --game "/absolute/path/to/CUSA16429"
 ```
 
-`--upscaler` takes `off`, `fsr3` or `fsr4`; `--output-resolution` takes `1080`, `1440`
-or `4k`.
+Source builds use `out/ps4rt`; the portable uses `bin/ps4rt`. For redistributable archives, follow the audited [portable build instructions](../packaging/linux/README.md) and [distribution guide](DISTRIBUTING_LINUX.md).
 
-DLC: the first-run setup offers to install your own DLC PKGs and you can also
-use the in-game **Game > Install DLC...** button later. New DLC takes effect
-after saving and using **Restart Game**. Manually extracted DLC folders remain
-supported under `dlc/CUSA16429/`; `--dlc /path` points at a directory
-containing per-DLC folders. See [Player update and DLC setup](PLAYER_PKG_SETUP.md)
-for details.
+## 5. Compatibility and troubleshooting
 
-## 5. Settings and saves
+- **System:** Native Linux x86-64/AMD64, glibc 2.35+, Python 3, Vulkan 1.3-capable drivers and compatible host display/input libraries. ARM64 and CPU translation via FEX or Box64 are unsupported/unverified.
+- **Testing:** Fedora gameplay including saves through Chapters 1–3 has been verified; a complete playthrough, other distributions and SteamOS have not been exhaustively tested. The 60 FPS mode remains experimental.
+- **DrawPipeline:** Off by default. On CPU-limited systems, try `PS4RT_DRAW_PIPE=1 bash Play-Game.sh`. It may cause flickering or missing UI/fade draws; reproduce bugs with DrawPipeline off before reporting them.
+- **No configured game folder:** Supply `--game "/absolute/path/to/CUSA16429"` on first launch, or again if you moved the folder; consult `PLAYER_README.txt`.
+- **Interrupted update:** Rerun setup with the same matching v1.01 update PKG. The chosen extracted game directory is modified in place; see [update and DLC setup](PLAYER_PKG_SETUP.md).
+- **FSR 4 unavailable:** Your GPU/driver may lack the required INT8 dot-product features. Use FSR 3.1 instead.
+- **Source checkout says runtime not built:** Run `bash build.sh`, or download the prebuilt player archive.
 
-- Open the in-game PS4RT menu with **Insert** (keyboard) or **R3 + L2** (controller).
-  Choices save when the menu closes.
-- Settings: `out/CUSA16429/ps4rt.ini`
-- Saves and other per-user data: `out/CUSA16429/user/`
-- Compiled shader cache: `out/CUSA16429/user/gpu/cache/`. It can be deleted at any time;
-  it is rebuilt on the next launch, with some stutter while it fills.
-
-## Optional performance experiment: DrawPipeline
-
-DrawPipeline is **off by default**. On CPU-limited systems, you can try
-`PS4RT_DRAW_PIPE=1 ./run.sh --game /path/to/CUSA16429`, but this may
-cause intermittent flickering or missing UI/fade draws. To disable it
-explicitly, use `PS4RT_DRAW_PIPE=0`. **Only bugs that reproduce with
-DrawPipeline disabled are supported**; issues exclusive to the experimental
-mode will not be investigated.
-
-## Troubleshooting
-
-- **FSR 4 is not offered in the menu:** your GPU or driver lacks the required INT8
-  dot-product support. FSR 3.1 is available instead.
-- **"Build the runtime first":** run `bash build.sh` before `./run.sh`.
-- **"Expected a PS4 game with CUSAxxxxx TITLE_ID":** `--game` must point at the game
-  folder that contains `sce_sys/param.sfo`.
+For bug reports and feature notes, see the [main README](../README.md) or [GitHub Issues](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/issues).

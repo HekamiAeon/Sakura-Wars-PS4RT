@@ -26,7 +26,7 @@ with Sega, Sony, or AMD.
 PS4RT or install FFmpeg, SDL3, Crypto++, or other bundled application
 libraries.**
 
-1. **Download:** Use the [latest GitHub release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/latest) and choose the player archive containing **`linux-x86_64`** in its filename, not the separately labeled `source` archive.
+1. **Download v1.1:** Use the [Sakura Wars PS4RT v1.1 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1) (also the [latest release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/latest)). Download **`Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz`** to play; the `source` archive is for developers. The superseded v1.0 release remains available for rollback.
 2. **Have your own extracted PS4 game:** The launcher needs a plaintext **`CUSA16429` folder** containing `sce_sys/param.sfo`, `eboot.bin`, `sce_module/`, and the game's data. Point to **the CUSA16429 folder itself**, not a PKG, its parent folder, or `eboot.bin`. Version **1.00 or 1.01** may be supplied; **v1.01 is required to play**.
 3. **Extract the downloaded archive** using your file manager. Open a terminal inside its extracted folder.
 4. **Launch** with the path to your extracted `CUSA16429` folder:
@@ -45,7 +45,7 @@ shown. The first run prepares the game's working files inside the portable.
 extracted CUSA16429 folder in place.** It replaces/adds the files supplied by
 the v1.01 update; it does **not** preserve a second original v1.00 copy.
 **Back up or duplicate your v1.00 game folder first** if you need to keep that
-version for another application. This is different from the Star Ocean port.
+version for another application. Other PS4RT ports may use different update workflows; follow these Sakura Wars in-place update instructions.
 Your original update PKG is not modified, and PS4RT saves and settings remain
 inside the portable.
 
@@ -116,6 +116,7 @@ verified. Please report reproducible issues, especially in later chapters.
 - **1080p, 1440p, and 4K output**, with **FSR 3.1**, optional **FSR 4 v07**,
   and sharpening. Higher output resolutions use upscaling/reconstruction;
   this is not a claim of native 4K game rendering.
+- **Graphics presets (v1.1):** **Max (original)** preserves the game's effects; **High** disables contact shadows and bloom. **Medium** additionally switches SMAA to FXAA, reduces depth-of-field resolution and dash motion-blur sampling, and disables character screen-space shadows. **Lowest** also disables anti-aliasing, outlines, and depth of field. The presets apply live, though some battle effects may look different.
 - **Anisotropic filtering:** Game default, 2×, 4×, 8×, or 16×. AF is separate
   from anti-aliasing and requires restarting the game.
 - **Custom Sakura Wars PS4RT overlay**, with artwork and menu sounds.
@@ -189,7 +190,7 @@ above.
 From a source checkout, install a C/C++ toolchain, CMake 3.24+, Ninja,
 pkg-config, Python 3, glslang, and development packages for Vulkan, SDL3,
 FFmpeg, X11, fmt, Boost, xxHash, robin-map, Zydis, and other source
-dependencies. **Unlike Star Ocean, Sakura Wars also needs Crypto++ and zlib
+dependencies. **Sakura Wars also needs Crypto++ and zlib
 development packages** for its built-in native PKG extractor. Exact package
 names vary by distribution (for example, `cryptopp-devel` and
 `zlib-devel` on Fedora).

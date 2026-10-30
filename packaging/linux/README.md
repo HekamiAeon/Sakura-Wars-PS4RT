@@ -1,9 +1,6 @@
 # Sakura Wars: portable Linux build
 
-This is the **same controlled Ubuntu 22.04 / GCC 14 / glibc 2.35 portability
-strategy** manually validated on the other PS4RT ports. Sakura Wars
-was started before the standardized Lab builder existed, so this is a manual
-retrofit. The Sakura Wars portable has been gameplay-tested on Fedora, including fresh v1.00 update installation, optional DLC setup, and first boot.
+This guide covers the **controlled Ubuntu 22.04 / GCC 14 / glibc 2.35 portable builder** used for Sakura Wars. Other PS4RT ports use a related portability strategy, but Sakura Wars has its own update/DLC installer and Crypto++ packaging requirements. The Sakura Wars portable has been gameplay-tested on Fedora, including fresh v1.00 update installation, optional DLC setup, and first boot.
 
 ## Build the controlled toolchain
 
@@ -38,9 +35,9 @@ workspace under `~/Documents/PS4RT-Builds/<repository-name>/` and generates
 separate player and source tarballs, each with SHA256 checksums, under
 `~/Documents/PS4RT-Releases/<repository-name>/`.
 
-Unlike the original 12-library Lab bundle, Sakura Wars also includes the
-native `ps4rt-pkg` extractor, graphical `ps4rt-setup` installer, and the
-linked Crypto++ shared library. zlib is included with the original 12.
+In addition to core PS4RT runtime libraries, the Sakura Wars portable
+includes the native `ps4rt-pkg` extractor, graphical `ps4rt-setup` installer,
+and its linked Crypto++ shared library. zlib is also bundled.
 The scripts collect libraries from the **build container**, never from
 the developer's Fedora host, set relative ELF RUNPATHs, and audit x86-64,
 glibc version requirements, and library resolution.
@@ -50,7 +47,7 @@ The portable archive selects `bin/ps4rt`, `bin/ps4rt-setup`, and
 
 ## Boundaries
 
-- The experimental branch is separate from the stable `main` release.
+- Build new release archives from a reviewed, committed revision. The published v1.1 tag and its audited assets remain pinned to `29f8822`; later docs-only commits on `main` do not rewrite the release.
 - The source and binary archives contain no PS4 game dumps, PKGs, saves,
   private developer files, or original game assets.
 - The update installer modifies the **player's selected extracted CUSA folder**
@@ -58,6 +55,6 @@ The portable archive selects `bin/ps4rt`, `bin/ps4rt-setup`, and
 - The vendored native extractor has upstream GPL notices in
   `third_party/ps4pkg/`. Distribute corresponding source and third-party
   notices with releases.
-- The older PS4RT portable audits do **not** substitute for a
+- Audits from other PS4RT ports do **not** substitute for a
   Sakura Wars clean-container build, package audit, update test, DLC test,
   and actual gameplay validation. Verify the final release archives and license obligations before publication.

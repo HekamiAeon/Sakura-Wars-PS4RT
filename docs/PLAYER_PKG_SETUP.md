@@ -31,6 +31,8 @@ Game files, updates, and DLC are **not** included.
    the updated game. You can also install DLC later through the in-game
    overlay or explicit CLI flags.
 
+After successful setup, later launches can use `bash Play-Game.sh` without `--game`. The validated game folder is remembered; pass `--game` again if the extraction moves. A missing location produces a first-launch example and refers to `PLAYER_README.txt` in the extracted player directory.
+
 **Important: Applying the update changes the extracted `CUSA16429`
 folder you selected.** Updated files replace the v1.00 files in that
 folder. PS4RT does **not** automatically keep a backup of the original

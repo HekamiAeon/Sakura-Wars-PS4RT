@@ -29,7 +29,7 @@ contributors remain credited here even where their game-specific features were r
 
 The portable Linux builder uses controlled Ubuntu 22.04/GCC 14 dependencies
 and provides the player binaries plus corresponding licensed source archives.
-The full Sakura Wars package remains experimental pending gameplay testing.
+The port remains experimental; verified early-game testing is not a complete playthrough.
 
 ## Research and reverse-engineering tools
 
@@ -45,7 +45,7 @@ The full Sakura Wars package remains experimental pending gameplay testing.
 This project retains source-level copyright, SPDX and license notices.
 The project license is [GPL-2.0-or-later](../LICENSE). Adapted files and vendored
 dependencies keep their original license notices under their respective source
-directories. The build links against locally installed system libraries, including FFmpeg.
+directories. Host-native developer builds may link against locally installed libraries; the portable release bundles audited application dependencies, including FFmpeg.
 
 FSR-Vulkan/AMD FidelityFX, ImGui, LibAtrac9, Sirit, half, xbyak, miniz, magic_enum,
 DejaVu fonts, and additional vendored libraries retain their own authors and licenses.
