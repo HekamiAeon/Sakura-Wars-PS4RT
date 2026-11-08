@@ -8,13 +8,10 @@
   "license_notice": "fsr4_shaders/LICENSE-FSR4-v07.txt",
   "output_tiers": [
     "1080",
-    "2160"
+    "2160",
+    "4320"
   ],
   "files": {
-    "fsr4_shaders/LICENSE-FSR4-v07.txt": {
-      "size": 1841,
-      "sha256": "1ba466516fa4270690c2b6e6a65f5b4b23d7ff0d7b1346603e187c1b3ad67f2a"
-    },
     "fsr4_shaders/fsr4_model_v07_i8_balanced_1080_pass1.spv": {
       "size": 45132,
       "sha256": "42ecc3732bae7cc5b22b0cf1bb25fc298963dd53a3f0233b343251d3ce43ffdf"
@@ -126,6 +123,62 @@
     "fsr4_shaders/fsr4_model_v07_i8_balanced_2160_pre.spv": {
       "size": 46376,
       "sha256": "915e2523c6276d5f50dbe264217e78db04d43dcddf492416dd619e3678d91961"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass1.spv": {
+      "size": 45132,
+      "sha256": "c19b69b335ad04cb36a506d84cb4ad9a1849f83dacd96fecd3d835cdabad7d34"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass10.spv": {
+      "size": 105464,
+      "sha256": "a7173349df954d08421789ac2d47fd03adc3e6d4aed883c1e144b0526625fd76"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass11.spv": {
+      "size": 120552,
+      "sha256": "6b61b923d1e62b490f0c9874519f82378feff4da93bcd494ff9d45fe6d1abad3"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass12.spv": {
+      "size": 45128,
+      "sha256": "9aa735543a92d150e4caf90434039707c62fb014e65e26e103224bc0fe2bcac7"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass2.spv": {
+      "size": 45104,
+      "sha256": "d5efcd27f47ef026e2b1b47c06d23447dcfe2fbe8dc8182ca6d339657209b893"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass3.spv": {
+      "size": 57520,
+      "sha256": "a83aee19861d7631fb663ba11584212a7a6932ea48824c0146c7388d5f926c16"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass4.spv": {
+      "size": 105456,
+      "sha256": "1b2474a147213da36b1e89032699989da68e081d83b9a65d5ad774678736d1e1"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass5.spv": {
+      "size": 105440,
+      "sha256": "585acae8fc929497e5b6da3ba3dc6442890b2303eddf81934d133f77bf14ceae"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass6.spv": {
+      "size": 222364,
+      "sha256": "c5cdce043a652b092785f790ad9a675e699362dc7264b85fdf2572ad6abc807a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass7.spv": {
+      "size": 503788,
+      "sha256": "6d14000a036ea46cfa88f28bf5dc036646e108015324f95bbb52312b9e1e7e94"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass8.spv": {
+      "size": 503568,
+      "sha256": "030c86c5ffc1c6a87d9877248e9c483adfdda8aab357e5fef4f4669a8db17b19"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pass9.spv": {
+      "size": 508540,
+      "sha256": "091659d99cc0f866cdc41291c71d7e9a093f78c7741bf28cfc21d2cee46b7877"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_post.spv": {
+      "size": 63408,
+      "sha256": "35ca675cc9a5b1e6291090905029420878e8095189b67c9cd9c955a7f02d0552"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_balanced_4320_pre.spv": {
+      "size": 46376,
+      "sha256": "6feea8e9f45b5de380efb0c9a136be49a692f119090c9b904e9c44691fc38c39"
     },
     "fsr4_shaders/fsr4_model_v07_i8_balanced_initializers.bin": {
       "size": 89216,
@@ -251,6 +304,62 @@
       "size": 46376,
       "sha256": "13c2048f2ce41f040574779646b85745529a624c8b7322c3195b9e17631e58de"
     },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass1.spv": {
+      "size": 45132,
+      "sha256": "42db7553456711b5458aa7a208b0bda7cbb4e8503d94c42de3afa7d32cac3620"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass10.spv": {
+      "size": 105404,
+      "sha256": "27e9d58753876dae3b491e678f8c49fe9a55028c6f3d339068a9912327760dfb"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass11.spv": {
+      "size": 120552,
+      "sha256": "2354cc985adf37b435dd5261f9b8bb331b37b3f91b9b118ef16c7086f70e3099"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass12.spv": {
+      "size": 45128,
+      "sha256": "f14e29f419d34e04ce17d7f65c63d1efed52cb2b03f8617b27bd29f8e035cbca"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass2.spv": {
+      "size": 45120,
+      "sha256": "b24954a71d1c955299e9867eb3dd69ef9ce24cf4ce2c9e8e7c872aaa1619445a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass3.spv": {
+      "size": 57520,
+      "sha256": "0145ebfb38b6cbfc5dfdc2daacddc2a750339fa9dfdab9333805f0d120337164"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass4.spv": {
+      "size": 105456,
+      "sha256": "2ed525433b529df7449d6486e089efa8686ca7a016665abd310d71e375738e4f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass5.spv": {
+      "size": 105440,
+      "sha256": "eb342aa176b6f7e0dace8ff3d4c1447f39695f4ca6251f0b8bb016a1241bf383"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass6.spv": {
+      "size": 222304,
+      "sha256": "83f73b43abf98ff9b0832d755482696c514ec79f25ae9f78e27e890bb3128b21"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass7.spv": {
+      "size": 503708,
+      "sha256": "fa52d2f9eeaf27ca2a9a75289de776dfb0c3e271307287e3bbac569f96da832e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass8.spv": {
+      "size": 503472,
+      "sha256": "f105f6303aaa2b21851ab556ff2f7cd75700df37b08a5adc1e260747816fa6cb"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pass9.spv": {
+      "size": 508584,
+      "sha256": "42efd37515bc73c86644e29d6df238f3e905903b0c1bd062b0aa5c7f424492a0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_post.spv": {
+      "size": 63408,
+      "sha256": "b33e95347016199deb5b014ce5477949114d1e7425936f3dd2fd981e33ab76ef"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_drs_4320_pre.spv": {
+      "size": 46376,
+      "sha256": "2700a0a91f8a08a342583aeeffacddce2a320c3d25fde917759588f79c67c4a4"
+    },
     "fsr4_shaders/fsr4_model_v07_i8_drs_initializers.bin": {
       "size": 89216,
       "sha256": "00ab0bc1fd12a823bb0fc8cd227b0e2d15718fe2a2082e972c6e0b6e46c77a8c"
@@ -374,6 +483,62 @@
     "fsr4_shaders/fsr4_model_v07_i8_native_2160_pre.spv": {
       "size": 46376,
       "sha256": "65c760f2199baf3b40c3ad577022996c44af75f9c9b21c32b2c25384775c6f0b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass1.spv": {
+      "size": 45072,
+      "sha256": "8fe37465f715b71428e156aae2be82e39e16cb1521fe8b9f50ab8611cab0423e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass10.spv": {
+      "size": 105464,
+      "sha256": "d9bc33b3b964056e0553047ce434458949e36912511009998667d9e0f968576a"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass11.spv": {
+      "size": 120612,
+      "sha256": "68b38ca60008c94a9ac4376f47a59734384a93d86badd9c2b8c5c52c8856929c"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass12.spv": {
+      "size": 45128,
+      "sha256": "160f78b474ba0c1365f6cca02f1339f34693b486a7eca1ef6bdb8bc2da55ae92"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass2.spv": {
+      "size": 45104,
+      "sha256": "e7e7fe23e65c84d7456805f36909c1962ca0adb8e4c73f332fab9a83df140957"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass3.spv": {
+      "size": 57520,
+      "sha256": "c4837c6de71e09a55602071c72c45f555919a98ffc337d2143dd4b162fe58623"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass4.spv": {
+      "size": 105440,
+      "sha256": "4c47522ffc3e2418468fb73d2537a3dce9edf4e8a4733bacf1695c4f723d7c22"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass5.spv": {
+      "size": 105288,
+      "sha256": "4d33458bd198c232e20700a28369474ba49af19fba91361ed41f6879b672ea7f"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass6.spv": {
+      "size": 222364,
+      "sha256": "53374419c91d6debb99885d135698a19ef5a1d1a47486915b9fc0bf9a8388c31"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass7.spv": {
+      "size": 503664,
+      "sha256": "459115527ef43b3b694482987126404bcf811b81b9890913f447ee08d573fbd0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass8.spv": {
+      "size": 503268,
+      "sha256": "4d5a390752fe0055158dac123f4ba61dd854990a50059f3245c8629d1625ea12"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pass9.spv": {
+      "size": 508600,
+      "sha256": "556cddcad26885fb96aaa26fe0c29699a817b135970686d341f21b7c56a70643"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_post.spv": {
+      "size": 63316,
+      "sha256": "dca856f83d155107e279b0b7af366d4c7eccab78b608e3922ff69f8c4d91277e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_native_4320_pre.spv": {
+      "size": 46376,
+      "sha256": "9defd72634f8b7eae3f567b99e9d823269148f7a33d0e52f664325185b015c13"
     },
     "fsr4_shaders/fsr4_model_v07_i8_native_initializers.bin": {
       "size": 89216,
@@ -499,6 +664,62 @@
       "size": 46376,
       "sha256": "5cc564136eee0e72db37a2a046c65a411108d49ca5023df59479d72f6a8f65b8"
     },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass1.spv": {
+      "size": 45132,
+      "sha256": "6e1107991742064cf3ca3e1b2fbfc0b080c38bdf336714e733a117f4b838b076"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass10.spv": {
+      "size": 105404,
+      "sha256": "e7cea622d35c066d6847110e22b69c32ee2ee7daace8ff8c91c82963acb36d1c"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass11.spv": {
+      "size": 120432,
+      "sha256": "152b996ccc2410ef0dc549ab7aac6a3ab24fa221413e0ca356fbf927f1cd7875"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass12.spv": {
+      "size": 45128,
+      "sha256": "6b5b70b9b76f826ccf590a8f9175b1ae266d2fe0b792ea2465f4751c4c9a86d1"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass2.spv": {
+      "size": 45120,
+      "sha256": "fef74fd3de941b36cba03588e41a5afc93f0729fb107cac6b8bfd04266c531c0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass3.spv": {
+      "size": 57520,
+      "sha256": "8452e4f2e188c4edcd07d5dc3f3b78cc31b9ab59b5bbf96af378106855ad61a2"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass4.spv": {
+      "size": 105396,
+      "sha256": "dbe91b2670f790f923feb4340f33a937163351f21087a62c8d48e559c7c3afd3"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass5.spv": {
+      "size": 105380,
+      "sha256": "76e8b2ee98a3187cf128276f9e190f1ef52f27a3cc51c8f1fc7259c0b8b5bbec"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass6.spv": {
+      "size": 222364,
+      "sha256": "6106e23f86aab8928b69bca684d355815d08286acf0b9bd0b785236951668b85"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass7.spv": {
+      "size": 503616,
+      "sha256": "0baa61518e6d38c61476639a43d2cbb7a1321e4e7f7f4bbb974ad827532cd91e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass8.spv": {
+      "size": 503580,
+      "sha256": "5eaadae253b2c82aafbde8ec4a7a2d3cf00baffe65faa22c5f9bd2668018e128"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pass9.spv": {
+      "size": 508540,
+      "sha256": "e0f35d9571d1ff11fc0929929f423ed7bd0d100037dc7927b710f6be86491d09"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_post.spv": {
+      "size": 63408,
+      "sha256": "e42c683d34d662a47b292cd7ac4fb3e1dccf8933f3d96040ffbb500cf28d3184"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_performance_4320_pre.spv": {
+      "size": 46376,
+      "sha256": "71a766e3e06184ec6faf1419d158c7abb3538fd4a53be32cea0a870f3110030f"
+    },
     "fsr4_shaders/fsr4_model_v07_i8_performance_initializers.bin": {
       "size": 89216,
       "sha256": "fe2ad00e9e7fc563bd9ee01ab72c82bb557bf0d8365a085e833749547e089aab"
@@ -622,6 +843,62 @@
     "fsr4_shaders/fsr4_model_v07_i8_quality_2160_pre.spv": {
       "size": 46376,
       "sha256": "f25d56545b170eedf61e414d4409dbcdb30180f3c4f27759e2b51b73b99ba50b"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass1.spv": {
+      "size": 45132,
+      "sha256": "22955d014d6e24f6937bda767d777bc423ac6eeee9bef56286ad16c96d8eb30e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass10.spv": {
+      "size": 105448,
+      "sha256": "b19ef7f93971f830e93851e99d0ec10952c74cd688ed48042e07ec49cd581b66"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass11.spv": {
+      "size": 120612,
+      "sha256": "8c1cc610ffa073939f2d9886e80c26dd7addc4405f624efeb7a82fd917899592"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass12.spv": {
+      "size": 45128,
+      "sha256": "7289310def7622d9a2b231d28df16fbe6df7615f7b53e00d21ffa23742fe5f40"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass2.spv": {
+      "size": 45120,
+      "sha256": "d014c8ff54909439290b695b684a11b7088d779084ae62d340de6fe646436b99"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass3.spv": {
+      "size": 57520,
+      "sha256": "22f6ce5e13c22a1bf8fca6302f3f26e523f3a4f5d8554d722b749e1c1986de78"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass4.spv": {
+      "size": 105456,
+      "sha256": "048454202a3ed03f9d55435ed728d224c20b7dfce429e25f1ecba1137352fafa"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass5.spv": {
+      "size": 105440,
+      "sha256": "7cb95bf001c51b07212f1631001f8ff3aca040bd5aa459ff77031166c89c7c76"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass6.spv": {
+      "size": 222364,
+      "sha256": "d2d75dfe4b2951e4c9585621ce9cf09c1915717bb54ceff6a68284e44dc332e8"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass7.spv": {
+      "size": 503680,
+      "sha256": "48a047649a642dd45948f49a4e6fa761066073cd104209f4876c66de4df09a86"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass8.spv": {
+      "size": 503444,
+      "sha256": "06d9c805f4c9f57a70b72d9900b86fbcc100a111a07798822bf5b23bb4a9e30c"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pass9.spv": {
+      "size": 508600,
+      "sha256": "a7a6db2f5cf6f1a6ed57bf009dce8541845f0befe6970219c889fb7e46dc7c20"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_post.spv": {
+      "size": 63408,
+      "sha256": "c9e2a4bf459214235fd83484f07910425119e750f004edeb58e9c7579c85a842"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_quality_4320_pre.spv": {
+      "size": 46376,
+      "sha256": "ffca42464f78c0a4ed8bcdedce3be23104a4fea785dac3b88e01f06f0d809e4c"
     },
     "fsr4_shaders/fsr4_model_v07_i8_quality_initializers.bin": {
       "size": 89216,
@@ -747,6 +1024,62 @@
       "size": 46376,
       "sha256": "bed4136dcae42ae12b9cc674c073af55145fb8c72cb9f30844a61265dbfcbc77"
     },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass1.spv": {
+      "size": 45132,
+      "sha256": "08b29bc786f669bee0280b33a2719f951de4c209852875500f14b9cda653fd7d"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass10.spv": {
+      "size": 105404,
+      "sha256": "496d84fbb901fdcad2414838f83d5aa2668291f5c6ecddf1aebb10de518274ab"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass11.spv": {
+      "size": 120612,
+      "sha256": "cf4c0f9a1acc8bb92933d38f79863d15867b210777552945880bbff9b86f3de6"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass12.spv": {
+      "size": 45128,
+      "sha256": "e741039a8543bcc438776d494dceee64b177a29b4b60af1cce4c962cecef5835"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass2.spv": {
+      "size": 45120,
+      "sha256": "41629afb4c3453ce0bb5e4b274fead8990fb0c077da2d032a9fb8b0f69554440"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass3.spv": {
+      "size": 57520,
+      "sha256": "d1543bf5bc3c9bf02f384c10a747aff7e915015787aa9c3be416d182caab733c"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass4.spv": {
+      "size": 105456,
+      "sha256": "e77b7b6d73eb6043b70dfe3715991a7bf8ac4d6eed5ab5c51f44ba0743d379f7"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass5.spv": {
+      "size": 105440,
+      "sha256": "44535de03082d2ab0c6bfd11f442c2f8abcfbd231b4496dbbeccdbcdb369f954"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass6.spv": {
+      "size": 222304,
+      "sha256": "f83c7c353a502452ef764bcd36c4b9812a52ae7525587c11afbb647c6a57eb85"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass7.spv": {
+      "size": 503516,
+      "sha256": "7030b8e80c35d5adabea9d83da2e9b7532166f55cdf02f926ea58ea765008416"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass8.spv": {
+      "size": 503628,
+      "sha256": "8a9e408f49fbe70ded0e660ce6ae310a2de4c95dc01d67dba3802915baf0dff0"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pass9.spv": {
+      "size": 508420,
+      "sha256": "e5b5dc98559144cb68a25161d9145c4238318b9baf432c5eea59f28b99667019"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_post.spv": {
+      "size": 63408,
+      "sha256": "efb84d0a21dcecbbe2ec9582fdbd731eb16147fde99168e1c53e73fc53f70b5e"
+    },
+    "fsr4_shaders/fsr4_model_v07_i8_ultraperf_4320_pre.spv": {
+      "size": 46376,
+      "sha256": "0824b02b93f99727f5e6aa9fcdd52abcfbc0f8602defe0eb3711190a52428d47"
+    },
     "fsr4_shaders/fsr4_model_v07_i8_ultraperf_initializers.bin": {
       "size": 89216,
       "sha256": "666839fa4dd1232847a81231151f33391c4b8110a5c9808fc8c1cb7b4c5bb61b"
@@ -758,6 +1091,10 @@
     "fsr4_shaders/fsr4_model_v07_i8_ultraperf_shader_manifest.json": {
       "size": 40998,
       "sha256": "045f6b34e1934ba3ed0529591282bdf2f8228ae36e88c5d57f1365d6a516ba98"
+    },
+    "fsr4_shaders/LICENSE-FSR4-v07.txt": {
+      "size": 1841,
+      "sha256": "1ba466516fa4270690c2b6e6a65f5b4b23d7ff0d7b1346603e187c1b3ad67f2a"
     },
     "fsr4_shaders/rcas.spv": {
       "size": 18908,

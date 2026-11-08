@@ -69,6 +69,62 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
+def verify_fsr4_assets(source):
+    """Verify declared FSR4 tiers and SHA-256 for every shipped asset.
+
+    Tier coverage follows the checksum manifest, not hard-coded file counts.
+    """
+    assets = {name for name in source if name.startswith('fsr4_shaders/')}
+    lock_path = 'packaging/fsr4-v07-assets.json'
+    if not assets and lock_path not in source:
+        return  # A game/template fixture with no FSR4 assets.
+    if lock_path not in source:
+        fail('FSR4 assets are present without a checksum lock')
+    try:
+        lock = json.loads(source[lock_path][0].decode('utf-8'))
+    except (ValueError, UnicodeError, IndexError, TypeError) as error:
+        fail('invalid FSR4 checksum lock: ' + str(error))
+    if not isinstance(lock, dict) or lock.get('schema_version') != 1:
+        fail('unsupported FSR4 checksum lock')
+    files = lock.get('files')
+    tiers = lock.get('output_tiers')
+    if not isinstance(files, dict) or not files:
+        fail('empty/invalid FSR4 checksum lock')
+    if (not isinstance(tiers, list) or not tiers or
+            any(not isinstance(t, str) or not re.fullmatch(r'[1-9][0-9]*', t)
+                for t in tiers) or len(tiers) != len(set(tiers))):
+        fail('invalid FSR4 output tiers')
+    if lock.get('license_notice') != 'fsr4_shaders/LICENSE-FSR4-v07.txt':
+        fail('FSR4 license notice is missing or unexpected')
+
+    expected = set(files)
+    if assets != expected:
+        fail('FSR4 asset/manifest set differs; missing=' +
+             str(len(expected - assets)) + ', unverified=' +
+             str(len(assets - expected)))
+    presets = ('native', 'quality', 'balanced', 'performance', 'ultraperf', 'drs')
+    stages = ('pre', 'post') + tuple(f'pass{i}' for i in range(1, 13))
+    required = {'fsr4_shaders/LICENSE-FSR4-v07.txt',
+                'fsr4_shaders/rcas.spv', 'fsr4_shaders/spd_auto_exposure.spv'}
+    for preset in presets:
+        stem = f'fsr4_shaders/fsr4_model_v07_i8_{preset}'
+        required.update((stem + '_shader_manifest.json',
+                         stem + '_initializers.bin', stem + '_pre_weights.bin'))
+        for tier in tiers:
+            required.update(f'{stem}_{tier}_{stage}.spv' for stage in stages)
+    if not required.issubset(expected):
+        fail('incomplete declared FSR4 tiers: ' +
+             ', '.join(sorted(required - expected)[:5]))
+    for name, metadata in files.items():
+        if (not isinstance(metadata, dict) or
+                type(metadata.get('size')) is not int or metadata['size'] < 0 or
+                not isinstance(metadata.get('sha256'), str) or
+                not re.fullmatch(r'[0-9a-f]{64}', metadata['sha256'])):
+            fail('invalid FSR4 checksum metadata: ' + name)
+        data = source[name][0]
+        if len(data) != metadata['size'] or digest(data) != metadata['sha256']:
+            fail('FSR4 checksum/size mismatch: ' + name)
+
 def safe_name(name):
     p = PurePosixPath(name)
     if p.is_absolute() or not p.parts or '..' in p.parts:
@@ -144,6 +200,7 @@ def source_at_head(repo=ROOT):
                                   0o755 if member.mode & 0o111 else 0o644)
     if not REQUIRED.issubset(files):
         fail('missing committed source: ' + ', '.join(sorted(REQUIRED - files.keys())))
+    verify_fsr4_assets(files)
     return revision, files
 
 
