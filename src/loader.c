@@ -266,6 +266,7 @@ static void fault(int sig, siginfo_t *info, void *context) {
     uintptr_t rip = (uintptr_t)uc->uc_mcontext.gregs[REG_RIP];
     char line[512];
     Dl_info where;
+    int pipeline_binary_fault = 0;
     int site = isa_table ? isa_rewrite_site_of_stub(isa_table, rip) : -1;
     int can_unwind = 1;
     char emulating[64] = "";
@@ -275,9 +276,13 @@ static void fault(int sig, siginfo_t *info, void *context) {
     if (site >= 0 || rip - (uintptr_t)image < 0x10000000)
         snprintf(line, sizeof(line), "Guest fault (signal %d) at guest offset 0x%lx, address %p%s\n",
                  sig, (unsigned long)(rip - (uintptr_t)image), info->si_addr, emulating);
-    else if (dladdr((void *)rip, &where) && where.dli_fname)
+    else if (dladdr((void *)rip, &where) && where.dli_fname) {
         snprintf(line, sizeof(line), "Host fault (signal %d) in %s+0x%lx (%s), address %p\n", sig, where.dli_fname,
                  (unsigned long)(rip - (uintptr_t)where.dli_fbase), where.dli_sname ? where.dli_sname : "?", info->si_addr);
+        /* Only the known Vulkan pipeline-binary SIGSEGV gets this recovery hint. */
+        pipeline_binary_fault = sig == SIGSEGV && where.dli_sname &&
+                                strstr(where.dli_sname, "InitializePipelineBinaryCache") != NULL;
+    }
     else {
         snprintf(line, sizeof(line), "Fault (signal %d) at RIP %p, address %p\n", sig, (void *)rip, info->si_addr);
         /* libc's unwinder may dereference an unmapped instruction address and
@@ -285,6 +290,13 @@ static void fault(int sig, siginfo_t *info, void *context) {
         can_unwind = 0;
     }
     { ssize_t written_=write(2, line, strlen(line)); (void)written_; }
+    if (pipeline_binary_fault) {
+        static const char hint[] =
+            "PS4RT: Pipeline binary cache initialization crashed.\n"
+            "PS4RT: Retry: PS4RT_PIPELINE_BINARIES=0 bash Play-Game.sh\n"
+            "PS4RT: If the game path is not remembered, add --game \"/path/to/CUSAxxxxx\".\n";
+        (void)write(2, hint, sizeof(hint) - 1);
+    }
 
 
     /* Host call chain (frames with unwind info; guest frames end it). */
