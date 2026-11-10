@@ -72,11 +72,32 @@ static ABI int32_t user_event(int32_t *event) {
 }
 
 /* ---- SystemService ---- */
-static int language(void) { const char *v=getenv("PS4RT_LANGUAGE"); return v ? atoi(v) : 1; }
+/* The console's system language as a PS4 system language ID (0 Japanese, 1 English US, 3 Spanish,
+ * ...). ps4rt_launch.py sets PS4RT_LANGUAGE from the overlay's Game language choice. Anything that
+ * is not an ID (empty, text, out of range) is English (US), the default before this option existed.
+ * The value is fixed for the run and logged once so a launch shows what the game was told. */
+static int language(void) {
+    static int cached=-1;
+    pthread_mutex_lock(&lock);
+    if (cached<0) {
+        const char *v=getenv("PS4RT_LANGUAGE");
+        char *end=NULL;
+        long id=v&&*v ? strtol(v,&end,10) : 1;
+        if (v&&*v&&(*end||id<0||id>30)) {
+            fprintf(stderr,"Runtime: ignoring invalid PS4RT_LANGUAGE=%s (using 1, English US)\n",v);
+            id=1;
+        }
+        cached=(int)id;
+        printf("Runtime: SystemService: system language %d\n",cached);
+    }
+    int id=cached;
+    pthread_mutex_unlock(&lock);
+    return id;
+}
 static ABI int32_t system_param(int32_t id,int32_t *value) {
     if (!value) return SYSTEM_PARAMETER;
     switch (id) {
-    case 1: *value=language(); break;           /* language (1 = English US, 8 = Russian) */
+    case 1: *value=language(); break;           /* system language ID (1 = English US) */
     case 2: *value=1; break;                    /* date format DD/MM/YYYY */
     case 3: *value=1; break;                    /* 24-hour clock */
 #ifdef _WIN32

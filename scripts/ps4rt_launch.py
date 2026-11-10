@@ -23,6 +23,131 @@ ROOT = Path(__file__).resolve().parent.parent
 TITLE_ID_PATTERN = re.compile(r'CUSA\d{5}\Z')
 
 
+# Game language: Sakura Wars reads the console's system language at every boot
+# (sceSystemServiceParamGetInt, parameter 1) and shows its text in that language; its own saves
+# hold no language. The overlay's choice is therefore the emulated console language, a PS4 system
+# language ID (not a game-private index and not a trophy locale). Only languages verified in game
+# for the EU v1.01 build are offered, in menu order. Its text exists in English, French, German
+# and Spanish; every other ID, Japanese (0) included, shows English, and the regional IDs 18
+# (en-GB), 20 (es-419) and 22 (fr-CA) show the same text as 1, 3 and 2.
+CONSOLE_LANGUAGES = (
+    (1, 'English'),
+    (2, 'French'),
+    (4, 'German'),
+    (3, 'Spanish'),
+)
+DEFAULT_CONSOLE_LANGUAGE = 1  # English (US): what this port always reported before the option
+MAX_SYSTEM_LANGUAGE = 30
+
+
+def _language_id(text) -> int | None:
+    """A PS4 system language ID, or None for anything else."""
+    try:
+        value = int(str(text).strip())
+    except ValueError:
+        return None
+    return value if 0 <= value <= MAX_SYSTEM_LANGUAGE else None
+
+
+def _ini_value(path: Path, key: str) -> str | None:
+    try:
+        lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
+    except OSError:
+        return None
+    found = None
+    for line in lines:
+        name, sep, value = line.partition('=')
+        if sep and name.strip() == key:
+            found = value.strip()
+    return found
+
+
+def _write_ini_value(path: Path, key: str, value: str, header: str = '') -> None:
+    """Replace (or add) one key, keeping every other line, with an atomic file replacement."""
+    try:
+        lines = path.read_text(encoding='utf-8').splitlines()
+    except FileNotFoundError:
+        lines = [header] if header else []
+    out, done = [], False
+    for line in lines:
+        if line.partition('=')[0].strip() == key and '=' in line:
+            if not done:
+                out.append(f'{key}={value}')
+            done = True
+        else:
+            out.append(line)
+    if not done:
+        out.append(f'{key}={value}')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp = tempfile.mkstemp(prefix=f'.{path.name}.', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            stream.write('\n'.join(out) + '\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temp, path)
+    except BaseException:
+        try:
+            os.unlink(temp)
+        except OSError:
+            pass
+        raise
+
+
+def _console_language(user_dir: Path, ini: Path, env: dict) -> int:
+    """Choose this launch's console language and tell the runtime and the overlay.
+
+    The emulated console keeps its language in user/console.ini, like a PS4 system setting.
+    ps4rt.ini only carries a pending overlay choice (language=-1 when there is none). A valid
+    pending choice becomes the console language before the game starts and is cleared once it
+    is stored. Without one, an explicit PS4RT_LANGUAGE from the caller wins for this launch only,
+    then the stored console language, then English (US), the port's previous behaviour.
+    """
+    console = user_dir / 'console.ini'
+    names = dict(CONSOLE_LANGUAGES)
+    raw_env = env.pop('PS4RT_LANGUAGE', None)
+    env.pop('PS4RT_LANGUAGE_CHOICES', None)
+    explicit = _language_id(raw_env) if raw_env not in (None, '') else None
+    if raw_env not in (None, '') and explicit is None:
+        print(f'PS4RT: ignoring invalid PS4RT_LANGUAGE={raw_env!r}', flush=True)
+    stored = _language_id(_ini_value(console, 'language') or '')
+    raw_pending = _ini_value(ini, 'language')
+    pending = None
+    if raw_pending is not None:
+        try:
+            pending = int(raw_pending)
+        except ValueError:
+            pending = -2  # damaged: never applied, cleared below
+    active = explicit if explicit is not None else stored
+    if pending is not None and pending != -1:
+        if pending in names:
+            active = pending
+            try:
+                _write_ini_value(console, 'language', str(pending),
+                                 '# Emulated console settings (PS4 system language ID)')
+                stored = pending
+                _write_ini_value(ini, 'language', '-1')
+                print(f'PS4RT: game language set to {names[pending]}', flush=True)
+            except OSError as error:
+                # Use it for this launch; the pending choice stays and is retried next time.
+                print(f'PS4RT: could not store the game language ({error}); '
+                      f'using {names[pending]} for this launch only', flush=True)
+        else:
+            print(f'PS4RT: ignoring unsupported game language {raw_pending!r}', flush=True)
+            try:
+                _write_ini_value(ini, 'language', '-1')
+            except OSError:
+                pass
+    if active is None:
+        active = DEFAULT_CONSOLE_LANGUAGE
+    choices = list(CONSOLE_LANGUAGES)
+    if active not in names:  # a manual override: show it rather than a wrong selection
+        choices.append((active, f'Other (system language {active})'))
+    env['PS4RT_LANGUAGE'] = str(active)
+    env['PS4RT_LANGUAGE_CHOICES'] = '|'.join(f'{i}={label}' for i, label in choices)
+    return active
+
+
 def _achievements(title_id: str, game: Path, user_dir: Path, env: dict) -> None:
     """Prepare the local trophy catalog (adapted from the Code Fairy port).
 
@@ -248,6 +373,8 @@ def main(argv=None) -> int:
     env['PS4RT_RESTART_COMMAND'] = shlex.join(restart)
     env['PS4RT_GPU_USER_DIR'] = str(gpu_user)
     env['PS4RT_CONFIG'] = str(out / 'ps4rt.ini')
+    # Before the trophy catalog: trophy text follows the console language.
+    _console_language(user_dir, out / 'ps4rt.ini', env)
     _achievements(title_id, game, user_dir, env)
     if args.upscaler is not None:
         env['PS4RT_UPSCALER'] = args.upscaler

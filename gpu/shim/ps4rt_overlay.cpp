@@ -18,6 +18,7 @@
 extern char **environ;
 #endif
 #include <unordered_map>
+#include <string>
 #include <vector>
 
 #include <SDL3/SDL.h>
@@ -28,6 +29,7 @@ extern char **environ;
 #include "ps4rt_perf_stats.h"
 #include "ps4rt_achievements_ui.h"
 #include "ps4rt_menu_navigation.h"
+#include "ps4rt_screenshot.h"
 
 extern "C" void runtime_restart(void); // src/loader.c: starts this launch again, ends this process
 #include "common/elf_info.h"
@@ -389,8 +391,60 @@ std::string OverlayText() {
     return P::Format(sample, items, s.overlay_layout == 0);
 }
 
+// The console languages ps4rt_launch.py offers (PS4RT_LANGUAGE_CHOICES: "id=label|...", PS4
+// system language IDs, in menu order). Empty without the launcher. Read once: the environment is
+// fixed for a run. Adapted from the Code Fairy port's language list.
+struct LanguageChoices {
+    std::vector<std::string> names;
+    std::vector<const char*> labels;
+    std::vector<int> ids;
+};
+const LanguageChoices& GameLanguages() {
+    static const LanguageChoices choices = [] {
+        LanguageChoices c;
+        const char* list = std::getenv("PS4RT_LANGUAGE_CHOICES");
+        for (const char* p = list ? list : ""; *p;) {
+            const char* end = std::strchr(p, '|');
+            const std::string entry(p, end ? size_t(end - p) : std::strlen(p));
+            const auto eq = entry.find('=');
+            char* tail = nullptr;
+            const long id = eq == std::string::npos ? -1 : std::strtol(entry.c_str(), &tail, 10);
+            if (eq != std::string::npos && eq > 0 && tail == entry.c_str() + eq && id >= 0 && id <= 30 &&
+                eq + 1 < entry.size()) {
+                c.ids.push_back(int(id));
+                c.names.push_back(entry.substr(eq + 1));
+            }
+            if (!end) break;
+            p = end + 1;
+        }
+        for (const auto& name : c.names) c.labels.push_back(name.c_str());
+        return c;
+    }();
+    return choices;
+}
+
+// Game language: the console language Sakura Wars reads when it starts. Shown only when the
+// launcher offers choices that include the language this launch uses.
+void LanguageRow() {
+    auto& s = Ps4RtSettings::Get();
+    const auto& c = GameLanguages();
+    if (s.startup_language < 0 ||
+        std::find(c.ids.begin(), c.ids.end(), s.startup_language) == c.ids.end())
+        return;
+    ChoiceRow("Game language", s.language, c.labels.data(), c.ids.data(), int(c.ids.size()),
+              "The console language the game starts with: its menus, text and subtitles. "
+              "Applies after restarting the game.");
+}
+
 void GameTab() {
     auto& s = Ps4RtSettings::Get();
+    if (s.startup_language >= 0 && !GameLanguages().ids.empty()) {
+        ImGui::SeparatorText("Language");
+        if (BeginRows("##language")) {
+            LanguageRow();
+            ImGui::EndTable();
+        }
+    }
     ImGui::SeparatorText("Controller");
     if (BeginRows("##controller")) {
         SliderRow("Vibration", s.vibration, 0, 100, "%d%%",
@@ -446,7 +500,8 @@ void CompactGraphics() {
             focus_graphics = false;
         }
         Choice("##value",s.output_res,outputs,output_values,3);
-        Help("Fixed 16:9 output fitted to the window. The game still renders internally at 1080p.");
+        Help("Fixed 16:9 output fitted to the window. Applies live. The game still renders "
+             "internally at 1080p, so FSR's render scale follows that fixed 1080p input.");
         ImGui::PopID();
         ChoiceRow("Display mode", s.display_mode, Ps4RtGraphics::DisplayModeNames.data(),
                   nullptr, Ps4RtGraphics::DisplayModeCount,
@@ -456,9 +511,17 @@ void CompactGraphics() {
             Ps4RtSettings::UpscalerFsr3, Ps4RtSettings::UpscalerFsr4};
         // Commit the provider together with its required motion/jitter settings.
         std::atomic<int> provider{s.upscaler.load()};
+        // The footnote also carries any reason FSR cannot run right now.
+        static std::string upscaler_help;
+        upscaler_help = "FSR reconstructs the 1080p scene before the HUD. Off uses the original "
+                        "image with ordinary display scaling. Applies live.";
+        if (s.upscaler != Ps4RtSettings::UpscalerOff)
+            if (const char* problem = s.temporal_problem.load()) upscaler_help += std::string(" ") + problem;
+        if (!s.fsr4_supported)
+            upscaler_help += " FSR 4 v07 requires GPU features unavailable on this device. FSR 3.1 remains available.";
+        if (const char* problem = s.fsr4_problem.load()) upscaler_help += std::string(" ") + problem;
         ChoiceRow("Upscaling / anti-aliasing", provider, providers, provider_values,
-                  s.fsr4_supported ? 3 : 2,
-                  "FSR reconstructs the 1080p scene before the HUD. Off uses the original image with ordinary display scaling.");
+                  s.fsr4_supported ? 3 : 2, upscaler_help.c_str());
         if (provider != s.upscaler)
             Ps4RtSettings::SetSceneUpscaler(provider, false);
         const bool temporal = s.upscaler != Ps4RtSettings::UpscalerOff;
@@ -485,22 +548,13 @@ void CompactGraphics() {
             s.rcas_strength = strength;
             dirty = true;
         }
-        Help("Optional sharpening. 0% disables it; larger values can add halos around edges.");
+        Help("Optional sharpening. 0% disables it; larger values can add halos around edges. Applies live.");
         ImGui::PopID();
+        LanguageRow();
         ImGui::EndTable();
     }
-    {
-        ImGui::TextDisabled("Display mode, resolution, FSR and sharpening apply live. Choices save on close.");
-        if (s.anisotropy != s.startup_anisotropy)
-            ImGui::TextWrapped("Restart the game to apply the selected anisotropic filtering.");
-        else
-            ImGui::TextDisabled("Anisotropic filtering changes require a game restart.");
-        ImGui::TextDisabled("Render scale follows the fixed 1080p game input.");
-        if (s.upscaler != Ps4RtSettings::UpscalerOff)
-            if (const char* problem = s.temporal_problem.load()) ImGui::TextWrapped("%s", problem);
-        if (!s.fsr4_supported) ImGui::TextWrapped("FSR 4 v07 requires GPU features unavailable on this device. FSR 3.1 remains available.");
-        if (const char* problem = s.fsr4_problem.load()) ImGui::TextWrapped("%s", problem);
-    }
+    // Each row's notes (live or on restart, render scale, FSR problems) are in its footnote;
+    // a pending restart change turns the Restart Game button into "Apply and restart".
 }
 
 void ImageTab() {
@@ -537,7 +591,7 @@ void ImageTab() {
                   "Sharper floors and walls seen at an angle. Little cost on most GPUs.");
         ImGui::EndTable();
     }
-    ImGui::TextDisabled("F12 saves a screenshot to the user\\screenshots folder.");
+    ImGui::TextDisabled("F12 saves a screenshot of the game image to the user/gpu/screenshots folder.");
     ImGui::SeparatorText("Information");
     if (BeginRows("##image_info")) {
         char text[96];
@@ -657,7 +711,7 @@ int RestartChanges() {
     const auto& s = Ps4RtSettings::Get();
     return (s.render_resolution != s.startup_render_resolution) + (s.engine_fps != s.startup_engine_fps) +
            (s.deferred_readback != s.startup_deferred_readback) + (s.stale_readback != s.startup_stale_readback) +
-           (s.anisotropy != s.startup_anisotropy);
+           (s.anisotropy != s.startup_anisotropy) + (s.language != s.startup_language);
 }
 
 // The portrait stays within the menu window, behind all settings widgets.
@@ -759,9 +813,9 @@ void Menu() {
             PadText("D-pad: navigate. Cross: enter the list. Circle: back. L1 / R1 or Q / E: Graphics.",
                     "D-pad: navigate. A: enter the list. B: back. LB / RB or Q / E: Graphics.",
                     "D-pad: navigate. B: enter the list. A: back. L / R or Q / E: Graphics.") :
-            PadText("D-pad: navigate. Cross: select. Circle: back. L1 / R1 or Q / E: Achievements.",
-                    "D-pad: navigate. A: select. B: back. LB / RB or Q / E: Achievements.",
-                    "D-pad: navigate. B: select. A: back. L / R or Q / E: Achievements."));
+            PadText("D-pad: navigate. Cross: select. Circle: back. L1 / R1 or Q / E: Achievements. Choices save on close.",
+                    "D-pad: navigate. A: select. B: back. LB / RB or Q / E: Achievements. Choices save on close.",
+                    "D-pad: navigate. B: select. A: back. L / R or Q / E: Achievements. Choices save on close."));
         ImGui::PopTextWrapPos();
         if (!achievements_page) {
             if (ImGui::Button("Close")) keep_open = false;
@@ -769,7 +823,8 @@ void Menu() {
             if (ImGui::Button("Exit Game"))
                 ImGui::OpenPopup("Exit game?");
             ImGui::SameLine();
-            if (ImGui::Button("Restart Game"))
+            const int restart_changes = RestartChanges();
+            if (ImGui::Button(restart_changes ? "Apply and restart###restart_game" : "Restart Game###restart_game"))
                 ImGui::OpenPopup("Restart game?");
             ImGui::SameLine();
             ImGui::BeginDisabled(dlc_installer_state == 1);
@@ -779,7 +834,9 @@ void Menu() {
             ShowDlcInstallerStatus();
             // Starts the game again from boot (same launch), for scenes that are hard to leave.
             if (ImGui::BeginPopupModal("Restart game?", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-                ImGui::TextWrapped("Restart the game from the start? Unsaved game progress will be lost.");
+                ImGui::TextWrapped(restart_changes
+                    ? "Restart the game from the start to apply the new settings? Unsaved game progress will be lost."
+                    : "Restart the game from the start? Unsaved game progress will be lost.");
                 ImGui::Spacing();
                 if (ImGui::Button("Cancel") ||
                     ImGui::IsKeyPressed(ImGuiKey_Escape, false) ||
@@ -1325,6 +1382,11 @@ bool HandleEvent(const SDL_Event& event) {
     case SDL_EVENT_KEY_DOWN:
     case SDL_EVENT_KEY_UP: {
         const bool down = event.type == SDL_EVENT_KEY_DOWN;
+        if (event.key.key == SDLK_F12) {
+            // The game's image without this menu, saved by the presenter.
+            if (down && !event.key.repeat) Ps4RtScreenshot::Request();
+            return true;
+        }
         if (is_open && event.key.key == SDLK_ESCAPE &&
             (ImGui::IsPopupOpen("Exit game?") || ImGui::IsPopupOpen("Restart game?") ||
              ImGui::IsPopupOpen("Restart for DLC?") || Ps4RtMenuNavigation::ChildPanelFocused())) {

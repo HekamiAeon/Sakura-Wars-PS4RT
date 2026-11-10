@@ -88,6 +88,13 @@ struct Values {
     std::atomic<int> graphics_preset{0};
     std::atomic<bool> graphics_preset_available{false};
     int startup_anisotropy = 0;
+    /// Game language: the emulated console (PS4 system) language ID this launch started with
+    /// (ps4rt_launch.py sets PS4RT_LANGUAGE and the offered PS4RT_LANGUAGE_CHOICES); -1 when the
+    /// launcher offers no choice. A different selection is only a pending change (ps4rt.ini
+    /// language=) that the launcher applies before the next start; ps4rt.ini never holds the
+    /// current language.
+    std::atomic<int> language{-1};
+    int startup_language = -1;
     /// Set before an "Apply and restart"; cleared once the new launch shows the game. run.py
     /// restores the previous startup options when a launch never cleared it.
     std::atomic<bool> restart_unconfirmed{false};

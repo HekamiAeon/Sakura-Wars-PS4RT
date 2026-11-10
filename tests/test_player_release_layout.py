@@ -55,6 +55,9 @@ class ReleaseLayoutTests(unittest.TestCase):
     def test_private_user_files_cannot_be_exported(self):
         for name in ('out/CUSA16429/user/savedata/secret.dat',
                      'out/CUSA16429/ps4rt.ini',
+                     'out/CUSA16429/user/console.ini',
+                     'out/CUSA16429/user/gpu/screenshots/CUSA16429_20261109_213047_023.png',
+                     'out/CUSA16429/user/achievements/1/NPWR17587_00.dat',
                      'game-dumps/CUSA16429/eboot.bin',
                      'docs/THIRD_PARTY_REVIEW.md',
                      'gpu/assets/private-background.png'):

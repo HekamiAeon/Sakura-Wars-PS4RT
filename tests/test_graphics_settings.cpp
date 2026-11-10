@@ -53,6 +53,45 @@ int main() {
     unsetenv("PS4RT_OUTPUT_RES");
     Load();
     assert(!s.object_motion && s.temporal_problem);
+
+    // Game language (ps4rt_launch.py protocol): the env carries the active console language;
+    // ps4rt.ini only ever carries a pending change, never read back by Load().
+    const auto ini_language = [&] {
+        FILE* file = std::fopen(path, "r");
+        assert(file);
+        char line[256];
+        int value = -99;
+        while (std::fgets(line, sizeof(line), file)) std::sscanf(line, "language=%d", &value);
+        std::fclose(file);
+        return value;
+    };
+    unsetenv("PS4RT_LANGUAGE_CHOICES");
+    setenv("PS4RT_LANGUAGE", "3", 1);
+    Load();
+    assert(s.language == -1 && s.startup_language == -1); // no choices offered: no row
+    Save();
+    assert(ini_language() == -1);
+    setenv("PS4RT_LANGUAGE_CHOICES", "1=English|3=Spanish|0=Japanese", 1);
+    Load();
+    assert(s.language == 3 && s.startup_language == 3);
+    Save();
+    assert(ini_language() == -1); // unchanged: no pending choice
+    s.language = 0;               // the menu picks Japanese
+    Save();
+    assert(ini_language() == 0);
+    Load(); // a stale pending value never becomes the current language
+    assert(s.language == 3 && s.startup_language == 3);
+    s.language = 1;
+    s.language = 3; // picked, then picked back: nothing pending
+    Save();
+    assert(ini_language() == -1);
+    for (const char* bad : {"", "x", "3x", "-1", "31"}) {
+        setenv("PS4RT_LANGUAGE", bad, 1);
+        Load();
+        assert(s.language == -1 && s.startup_language == -1);
+    }
+    unsetenv("PS4RT_LANGUAGE");
+    unsetenv("PS4RT_LANGUAGE_CHOICES");
     unlink(path);
-    std::puts("PASS: native-scene settings persistence and native-port defaults");
+    std::puts("PASS: native-scene settings persistence, native-port defaults and the pending game-language protocol");
 }
