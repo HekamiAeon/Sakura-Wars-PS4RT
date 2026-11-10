@@ -28,6 +28,8 @@ FSR 4 requires compatible Vulkan GPU features, including INT8 dot-product suppor
 bash Play-Game.sh --upscaler fsr4 --output-resolution 4k
 ```
 
+**Achievements:** The overlay's **Achievements** page (switch with L1 / R1 or Q / E) lists the game's trophies with icons, hidden entries, progress and unlock dates. The game itself triggers each unlock; PS4RT saves it locally, shows a short notification and keeps it across restarts. It is not PSN synchronization, and trophies earned before this feature are not imported. Japanese, Korean and Chinese trophy text uses an installed Noto Sans CJK font when available.
+
 For later DLC installation, use **Game > Install DLC...** in the overlay with your own compatible PKGs. New DLC loads after a restart. **Save your game before using Restart Game** or quitting, since graphics settings and game progress are saved separately.
 
 ## 3. Settings, saves, and private data
@@ -37,6 +39,7 @@ Keep the extracted player directory together and writable. Generated files and p
 - `out/CUSA16429/game-folder.txt`: remembered game directory.
 - `out/CUSA16429/ps4rt.ini`: graphics settings.
 - `out/CUSA16429/user/savedata/`: game saves.
+- `out/CUSA16429/user/achievements/`: local achievement unlocks and the trophy text/icon catalog.
 - `out/CUSA16429/user/gpu/cache/`: shader/pipeline caches; deleting a cache forces recompilation.
 - `out/CUSA16429/player-content/dlc/`: optional installed DLC.
 

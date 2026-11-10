@@ -27,6 +27,17 @@ contributors remain credited here even where their game-specific features were r
   extraction dependency under the Boost Software License 1.0.
 - [zlib](https://zlib.net/): decompression runtime bundled under the zlib license.
 
+## Local achievements
+
+- The local achievement service, trophy catalog reader and overlay list are
+  adapted from the sibling Code Fairy PS4RT port (GPL-2.0-or-later).
+- [DiamondDogz/Sakura-Wars-PS4RT-Windows](https://github.com/DiamondDogz/Sakura-Wars-PS4RT-Windows):
+  the trophy metadata AES routines in `scripts/trophy_crypto.py` are adapted
+  from its `scripts/trophy_trp.py` (GPL-2.0-or-later); the file identifies the
+  exact revision. The trophy archive layout follows shadPS4's `trp.cpp`.
+- The game decides every unlock. PS4RT stores unlocks locally and does not
+  synchronize with PSN.
+
 The portable Linux builder uses controlled Ubuntu 22.04/GCC 14 dependencies
 and provides the player binaries plus corresponding licensed source archives.
 The port remains experimental; verified early-game testing is not a complete playthrough.

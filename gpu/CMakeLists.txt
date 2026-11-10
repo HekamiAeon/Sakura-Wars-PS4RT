@@ -270,3 +270,18 @@ set_source_files_properties(../tests/test_image_subresource.cpp PROPERTIES COMPI
 set_source_files_properties(../tests/test_gpu_workarounds.cpp PROPERTIES COMPILE_OPTIONS "-fvisibility=hidden;-fvisibility-inlines-hidden")
 
 target_sources(cpu-image-writeback-test PRIVATE ../tests/test_cpu_image_writeback_fault.cpp)
+
+# Local achievements (adapted from the Code Fairy port): the shared service and its
+# overlay navigation need no graphics device, guest process or original game files.
+add_executable(achievements-test EXCLUDE_FROM_ALL ../tests/test_achievements.cpp shim/ps4rt_achievements.cpp)
+target_include_directories(achievements-test PRIVATE shim)
+target_compile_options(achievements-test PRIVATE -UNDEBUG)
+add_test(NAME achievements COMMAND achievements-test)
+
+add_executable(achievements-ui-test EXCLUDE_FROM_ALL ../tests/test_achievements_ui.cpp
+    shim/ps4rt_achievements.cpp shim/ps4rt_achievements_ui.cpp
+    third_party/imgui/imgui.cpp third_party/imgui/imgui_draw.cpp
+    third_party/imgui/imgui_tables.cpp third_party/imgui/imgui_widgets.cpp)
+target_include_directories(achievements-ui-test PRIVATE shim third_party/imgui)
+target_compile_options(achievements-ui-test PRIVATE -UNDEBUG)
+add_test(NAME achievements-ui COMMAND achievements-ui-test)

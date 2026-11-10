@@ -23,6 +23,27 @@ ROOT = Path(__file__).resolve().parent.parent
 TITLE_ID_PATTERN = re.compile(r'CUSA\d{5}\Z')
 
 
+def _achievements(title_id: str, game: Path, user_dir: Path, env: dict) -> None:
+    """Prepare the local trophy catalog (adapted from the Code Fairy port).
+
+    The game still decides every unlock. Text, icons and unlock state live in
+    the runtime user area; the installed game files are only read. A missing
+    or damaged trophy archive must never prevent the game from starting.
+    """
+    from trophy_catalog import prepare_catalog, trophy_language
+    env.pop('PS4RT_TROPHY_CATALOG', None)
+    env['PS4RT_ACHIEVEMENTS_DIR'] = str(user_dir / 'achievements')
+    try:
+        language = int(env.get('PS4RT_LANGUAGE', '1'))
+        language = trophy_language(title_id, user_dir, language)
+        env['PS4RT_TROPHY_LANGUAGE'] = str(language)
+        catalog = prepare_catalog(game, user_dir, language)
+        if catalog is not None:
+            env['PS4RT_TROPHY_CATALOG'] = str(catalog)
+    except Exception as error:  # any metadata problem: play without achievements
+        print(f'Achievements unavailable: {error}', flush=True)
+
+
 def _select_game_folder(explicit: Path | None, remembered: Path) -> Path:
     """Resolve the player's game folder without changing remembered state.
 
@@ -227,6 +248,7 @@ def main(argv=None) -> int:
     env['PS4RT_RESTART_COMMAND'] = shlex.join(restart)
     env['PS4RT_GPU_USER_DIR'] = str(gpu_user)
     env['PS4RT_CONFIG'] = str(out / 'ps4rt.ini')
+    _achievements(title_id, game, user_dir, env)
     if args.upscaler is not None:
         env['PS4RT_UPSCALER'] = args.upscaler
     if args.output_resolution is not None:

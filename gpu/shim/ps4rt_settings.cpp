@@ -51,7 +51,7 @@ void Set(Values& v, const std::string& key, const std::string& value) {
         return;
     }
     if (key == "menu_tab") {
-        v.menu_tab = i >= 0 && i <= 3 ? i : 0;
+        v.menu_tab = i >= 0 && i <= 4 ? i : 0; // 4: Achievements
         return;
     }
     if (key == "upscaler") {

@@ -49,7 +49,9 @@ BINS = {'bin/ps4rt': '$ORIGIN/../lib:$ORIGIN/gpu',
 PLAYER = {'run.sh', 'scripts/ps4rt_launch.py', 'scripts/prepare.py',
           'scripts/link_modules.py', 'scripts/link_libc.py',
           'scripts/content_profile.py', 'scripts/player_setup.py',
-          'scripts/patch_assembly.py'}
+          'scripts/patch_assembly.py',
+          # Local achievements: the launcher builds the trophy catalog at start.
+          'scripts/trophy_catalog.py', 'scripts/trophy_crypto.py'}
 MEDIA = {'gpu/assets/sakura_wars_overlay.png', 'gpu/assets/sounds/scroll.wav',
          'gpu/assets/sounds/open.wav', 'gpu/assets/sounds/close.wav',
          'gpu/third_party/fonts/DejaVuSans.ttf'}

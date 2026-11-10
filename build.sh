@@ -35,7 +35,8 @@ ar rcs out/libatrac9.a out/atrac9/*.o
 if [[ ${1:-} == --test ]]; then
     ninja -C out/gpu -j "${PS4RT_BUILD_JOBS:-4}" ui-coordinates-gpu-test display-sample-gpu-test transition-snapshot-gpu-test \
         cpu-image-writeback-test color-export-test image-subresource-test gpu-workarounds-test \
-        camera-layout-test scene-camera-history-test menu-input-test graphics-settings-test framerate-test sakura-camera-test
+        camera-layout-test scene-camera-history-test menu-input-test graphics-settings-test framerate-test sakura-camera-test \
+        achievements-test achievements-ui-test
     "$compiler" -std=c11 -O2 -Wall -Wextra -Werror -pthread "${includes[@]}" -I. -Isrc \
         tests/test_content.c src/runtime_content.c -o out/content-test
     "$compiler" -std=c11 -O2 -Wall -Wextra -Werror -pthread -I. -Isrc \
