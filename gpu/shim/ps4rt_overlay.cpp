@@ -506,6 +506,7 @@ void CompactGraphics() {
         ChoiceRow("Display mode", s.display_mode, Ps4RtGraphics::DisplayModeNames.data(),
                   nullptr, Ps4RtGraphics::DisplayModeCount,
                   "Windowed, borderless window or fullscreen. Applies immediately.");
+        CheckRow("FPS counter", s.show_fps, "Shows the frame rate in a corner of the screen. Applies live.");
         static const char* const providers[] = {"Off / Original", "FSR 3.1", "FSR 4 v07"};
         static constexpr int provider_values[] = {Ps4RtSettings::UpscalerOff,
             Ps4RtSettings::UpscalerFsr3, Ps4RtSettings::UpscalerFsr4};
