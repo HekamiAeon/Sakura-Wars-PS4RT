@@ -866,6 +866,16 @@ int main(int argc, char **argv) {
         if (!getenv("PS4RT_EXPERIMENT_RT_GROWTH")) protect(image+round_page(size)+stub_area,page_size,5);
     }
     if (getenv("PS4RT_EXPERIMENT_RT_GROWTH")) {
+        /* The render size (the engine's own --renderres or --res arguments). */
+        unsigned rw=0, rh=0;
+        const char *ga=getenv("PS4RT_GUEST_ARGS");
+        if (ga) {
+            const char *q;
+            if ((q=strstr(ga,"--renderres_x="))) rw=(unsigned)strtoul(q+14,NULL,10);
+            else if ((q=strstr(ga,"--res_x="))) rw=(unsigned)strtoul(q+8,NULL,10);
+            if ((q=strstr(ga,"--renderres_y="))) rh=(unsigned)strtoul(q+14,NULL,10);
+            else if ((q=strstr(ga,"--res_y="))) rh=(unsigned)strtoul(q+8,NULL,10);
+        }
         /* UW experiment. World-anchored UI (NPC "..." bubbles, the Talk prompt) projects its
          * anchor with the authored 1920-wide UI size, so at 21:9 it lands at 0.75x the head's
          * offset. Each site's 5-byte width load becomes a call to a stub that loads
@@ -891,6 +901,45 @@ int main(int argc, char **argv) {
             }
             printf("UW experiment: %s anchor 0x%" PRIx64 " %s\n",anchors[a].name,anchors[a].site,ok?"widened":"NOT MATCHED");
         }
+        /* More world-anchored UI with the same 1920-wide projection, all loading the UI size as
+         * `vmovs(s|d) xmmD,[B+0x34]` (width, or width and height) from the same screen object.
+         * Each load becomes a jmp to a stub that loads max(width, height * render aspect) in
+         * place of the width (the height unchanged) and jumps back: no stack, no other register,
+         * no flags; unchanged at 16:9. */
+        {
+            static const struct { uint64_t site; const char *name; } wide_ui[]={
+                {0xb3910c,"enemy HP bar"},
+                {0xb392bc,"enemy HP bar (2)"},
+                {0xaa7399,"NPC text bubble"},
+            };
+            const float render_aspect=rw&&rh ? (float)rw/(float)rh : 16.0f/9.0f;
+            for (size_t a=0;a<sizeof(wide_ui)/sizeof(*wide_ui);++a) {
+                unsigned char *p=image+wide_ui[a].site, *st=at;
+                /* c5 fb|fa 10 modrm 34: vmovsd|vmovss xmmD,[B+0x34] (mod 01, B not rsp) */
+                int ok=wide_ui[a].site+5<=size && p[0]==0xc5 && (p[1]==0xfb || p[1]==0xfa) &&
+                       p[2]==0x10 && (p[3]&0xc0)==0x40 && (p[3]&7)!=4 && p[4]==0x34 &&
+                       at+48<=uw_stubs+page_size/2;
+                if (ok) {
+                    const int pair=p[1]==0xfb, d=(p[3]>>3)&7, b=p[3]&7;
+                    const unsigned char m=(unsigned char)(0x40|d<<3|b), v=(unsigned char)(0x80|((~d&15)<<3));
+                    unsigned char *q=st;
+                    *q++=0xc5; *q++=0xfa; *q++=0x10; *q++=m; *q++=0x38;                /* vmovss xmmD,[B+0x38] (vvvv 1111) */
+                    unsigned char *mul=q;
+                    *q++=0xc5; *q++=v|2; *q++=0x59; *q++=(unsigned char)(d<<3|5); q+=4;  /* vmulss xmmD,xmmD,[rip+K] */
+                    *q++=0xc5; *q++=v|2; *q++=0x5f; *q++=m; *q++=0x34;                 /* vmaxss xmmD,xmmD,[B+0x34] */
+                    if (pair) { *q++=0xc4; *q++=0xe3; *q++=(unsigned char)(((~d&15)<<3)|1);
+                                *q++=0x21; *q++=m; *q++=0x38; *q++=0x10; }             /* vinsertps xmmD,xmmD,[B+0x38],0x10 */
+                    int32_t back=(int32_t)((p+5)-(q+5));
+                    *q++=0xe9; memcpy(q,&back,4); q+=4;                                 /* jmp site+5 */
+                    int32_t kd=(int32_t)(q-(mul+8)); memcpy(mul+4,&kd,4);
+                    memcpy(q,&render_aspect,4); q+=4;                                   /* K */
+                    int32_t to=(int32_t)(st-(p+5));
+                    p[0]=0xe9; memcpy(p+1,&to,4);
+                    at+=((size_t)(q-st)+15)&~(size_t)15;
+                }
+                printf("UW experiment: %s anchor 0x%" PRIx64 " %s\n",wide_ui[a].name,wide_ui[a].site,ok?"widened":"NOT MATCHED");
+            }
+        }
         protect(uw_stubs,page_size,5);
         /* Skip the growth alerts of RenderTargetManager and ArukasSurfaceMemoryManager (debug
          * traps after the buffer has been freed for reallocation at the new, larger size). */
@@ -909,16 +958,23 @@ int main(int argc, char **argv) {
          * it up front for the render resolution: measured field needs 434 MiB at 2560x1080 and
          * 1149 MiB at 3840x2160 (about 77 MiB + 129.3 MiB per megapixel), plus a generous 50%
          * for heavier scenes (unused pool costs nothing that matters), never below 400 MiB. */
-        unsigned rw=0, rh=0;
-        const char *ga=getenv("PS4RT_GUEST_ARGS");
-        if (ga) {
-            const char *q;
-            if ((q=strstr(ga,"--renderres_x="))) rw=(unsigned)strtoul(q+14,NULL,10);
-            else if ((q=strstr(ga,"--res_x="))) rw=(unsigned)strtoul(q+8,NULL,10);
-            if ((q=strstr(ga,"--renderres_y="))) rh=(unsigned)strtoul(q+14,NULL,10);
-            else if ((q=strstr(ga,"--res_y="))) rh=(unsigned)strtoul(q+8,NULL,10);
-        }
         if (rw && rh && rw<=16384 && rh<=16384) {
+            /* The game camera update (0x4bbd50, 0x4bbd80) hands SetPerspective (0xdd4740) a
+             * fixed 16:9 aspect, each call loading it from its own constant: at a wider render
+             * size the 3D scene was a 16:9 picture stretched across it (combat at 32:9: 2x).
+             * The render size's aspect keeps the vertical framing and shows more world at the
+             * sides (Hor+). 16:9 and narrower keep the constants. */
+            if ((double)rw/rh > 16.0/9.0+0.01) {
+                static const uint64_t aspect_sites[]={0x113414c,0x1134150};
+                const float wide=16.0f/9.0f, aspect=(float)rw/(float)rh;
+                for (size_t c=0;c<sizeof(aspect_sites)/sizeof(*aspect_sites);++c) {
+                    unsigned char *p=image+aspect_sites[c];
+                    int ok=aspect_sites[c]+4<=size && !memcmp(p,&wide,4);
+                    if (ok) memcpy(p,&aspect,4);
+                    printf("UW experiment: camera aspect 0x%" PRIx64 " %s (%.4f)\n",aspect_sites[c],
+                           ok?"set":"NOT MATCHED",aspect);
+                }
+            }
             double mib=1.5*(77.0+129.3*((double)rw*rh/1e6));
             uint32_t pool=(uint32_t)(((uint64_t)mib+15)/16*16)<<20;
             if (pool<0x19000000u) pool=0x19000000u;

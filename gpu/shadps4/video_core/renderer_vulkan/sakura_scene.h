@@ -15,6 +15,10 @@ constexpr unsigned long long TonemapFs = 0x23aaa124;  ///< Tonemap seen in the f
 constexpr unsigned ViewBuffer = 1, ViewBytes = 3792;   ///< PostEdge fragment buffer slot/size.
 /// 2D quads (dialogue box, subtitles) drawn into the finished frame before the display pass.
 constexpr unsigned long long FrameUiVs = 0xf678d6a5;
+/// HUD particle effects drawn into the UI layer (the Team morale meter's glow and its outer
+/// layers; stride-188 particle vertices). Each effect projects with its own camera of a fixed
+/// 16:9 aspect (60 degrees, a unit-sized scene).
+constexpr unsigned long long HudParticleVs[] = {0x26b63e98, 0x8d2c35dd, 0x3b2ddb4e, 0xc2eba762};
 /// Texel copy (fetch -> storage write) of the finished frame, with its UI, for the final colour
 /// pass (ps 38ddb12f, the brightness curve); also copies it before the UI.
 constexpr unsigned long long FrameCopyCs = 0x98b85f76;

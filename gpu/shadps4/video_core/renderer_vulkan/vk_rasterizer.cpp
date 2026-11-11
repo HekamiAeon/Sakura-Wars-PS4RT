@@ -985,17 +985,36 @@ void Rasterizer::PrepareCanvasClip(const GraphicsPipeline* pipeline) {
     const s32 w = s32(ci.size.width), h = s32(ci.size.height);
     const s32 canvas = s32(std::lround(h * 16.0 / 9.0));
     if (w <= canvas + 2) return; // 16:9 or narrower
+    if (ci.guest_address == clip.ui_layer &&
+        std::find(std::begin(SakuraScene::HudParticleVs), std::end(SakuraScene::HudParticleVs), vs) !=
+            std::end(SakuraScene::HudParticleVs)) {
+        // HUD particles: their 16:9 projection spread over the wide target puts them twice as
+        // far out (at 32:9) and stretched; the centred 16:9 canvas is where the HUD they belong
+        // to is laid out. (Not other non-UI draws there: the radar's blips are already right.)
+        ui_stretch = float(canvas) / float(w);
+    }
     if (vs == SakuraScene::FrameUiVs) {
         clip.ui_layer = ci.guest_address;
-        // Fades (to and from black, loading backgrounds) are untextured colour quads covering
-        // at least the 16:9 canvas (slightly more while they scale): stretch them over the
-        // whole width. A solid colour cannot distort; textured art keeps its layout.
+        // Fades and wipes (to and from black, loading backgrounds, the panel sliding over the
+        // screen on scene changes) are untextured colour quads of the full height and at least
+        // the 16:9 canvas' width, wherever they are: stretch them (and their positions) about
+        // the centre over the whole width, as they cover a 16:9 screen. A solid colour cannot
+        // distort; textured art keeps its layout.
         const auto* fs_info = pipeline->GetStages()[u32(Shader::SwStage::Fragment)];
         std::array<float, 4> ndc{};
         const float c = float(canvas) / float(w), tol = 16.0f / float(w);
         if (fs_info && UiDrawRect(pipeline, ndc)) {
-            if (fs_info->images.empty() && ndc[0] < -c + tol && ndc[2] > c - tol &&
+            if (fs_info->images.empty() && ndc[2] - ndc[0] > 2.0f * (c - tol) &&
                 ndc[1] < -1.0f + tol && ndc[3] > 1.0f - tol) {
+                ui_stretch = 1.0f / c;
+            }
+            // Full-screen backgrounds drawn past both edges of the canvas and over the full height
+            // (the sky behind the broadcast frame in cutscenes, 1000x600 drawn at about 1.09x):
+            // overscanned so that no edge shows on a 16:9 screen, so stretch them over the width.
+            // Pictures exactly on the canvas (the pause menu's grid, the Battle Report map) do not
+            // qualify.
+            if (fs_info->images.size() == 1 && ui_stretch == 1.0f && ndc[0] < -c - tol &&
+                ndc[2] > c + tol && ndc[1] <= -1.0f + tol && ndc[3] >= 1.0f - tol) {
                 ui_stretch = 1.0f / c;
             }
             // A full-screen 16:9 picture placed exactly on the canvas (the Battle Report map,
