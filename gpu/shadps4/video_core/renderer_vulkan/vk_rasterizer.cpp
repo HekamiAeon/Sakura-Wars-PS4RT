@@ -1008,31 +1008,34 @@ void Rasterizer::PrepareCanvasClip(const GraphicsPipeline* pipeline) {
                 ndc[1] < -1.0f + tol && ndc[3] > 1.0f - tol) {
                 ui_stretch = 1.0f / c;
             }
-            // Full-screen backgrounds drawn past both edges of the canvas and over the full height
-            // (the sky behind the broadcast frame in cutscenes, 1000x600 drawn at about 1.09x):
-            // overscanned so that no edge shows on a 16:9 screen, so stretch them over the width.
-            // Pictures exactly on the canvas (the pause menu's grid, the Battle Report map) do not
-            // qualify.
-            if (fs_info->images.size() == 1 && ui_stretch == 1.0f && ndc[0] < -c - tol &&
-                ndc[2] > c + tol && ndc[1] <= -1.0f + tol && ndc[3] >= 1.0f - tol) {
+            // A full-screen 16:9 picture (1920x1080) covering the canvas (the Battle Report map,
+            // also while it zooms in from 1.1x; still backgrounds) makes this a 16:9 screen even
+            // over a rendered 3D scene: from here on the UI layer's sides are black, as on the
+            // title and menus.
+            u32 tw = 0, th = 0;
+            if (fs_info->images.size() == 1) {
+                const auto sh = fs_info->images[0].GetSharp(*fs_info);
+                tw = u32(sh.width) + 1;
+                th = u32(sh.height) + 1;
+            }
+            const bool covers = ndc[0] < -c + tol && ndc[2] > c - tol && ndc[1] < -1.0f + tol &&
+                                ndc[3] > 1.0f - tol;
+            if (covers && tw == 1920 && th == 1080) clip.backdrop = true;
+            // Other full-screen backgrounds drawn past both edges of the canvas (the sky behind
+            // the broadcast frame in cutscenes, 1000x600 at about 1.09x): overscanned so that no
+            // edge shows on a 16:9 screen, so stretch them over the width. Pictures exactly on
+            // the canvas (the pause menu's grid) do not qualify.
+            if (covers && tw && !(tw == 1920 && th == 1080) && ui_stretch == 1.0f &&
+                ndc[0] < -c - tol && ndc[2] > c + tol) {
                 ui_stretch = 1.0f / c;
             }
-            // A full-screen 16:9 picture placed exactly on the canvas (the Battle Report map,
-            // still backgrounds) makes this a 16:9 screen even over a rendered 3D scene: from
-            // here on the UI layer's sides are black, as on the title and menus.
             // Title screen: a parallax painting authored for 16:9 (no art left of the 16:9
             // area), marked by its 3388x1656 sky. Its painted layers (format 41, at least 1024
             // wide) are stretched over the width; the logo and text keep their shape and layout.
-            if (fs_info->images.size() == 1) {
-                const auto sh = fs_info->images[0].GetSharp(*fs_info);
-                const u32 tw = u32(sh.width) + 1, th = u32(sh.height) + 1;
-                if (tw == 3388 && th == 1656) clip.title = true;
-                if (clip.title && u32(sh.GetDataFmt()) == 41 && tw >= 1024) ui_stretch = 1.0f / c;
-            }
-            if (fs_info->images.size() == 1 && std::abs(ndc[0] + c) < tol && std::abs(ndc[2] - c) < tol &&
-                std::abs(ndc[1] + 1.0f) < tol && std::abs(ndc[3] - 1.0f) < tol) {
-                const auto sh = fs_info->images[0].GetSharp(*fs_info);
-                if (u32(sh.width) + 1 == 1920 && u32(sh.height) + 1 == 1080) clip.backdrop = true;
+            if (tw == 3388 && th == 1656) clip.title = true;
+            if (clip.title && tw >= 1024 &&
+                u32(fs_info->images[0].GetSharp(*fs_info).GetDataFmt()) == 41) {
+                ui_stretch = 1.0f / c;
             }
         }
     }
