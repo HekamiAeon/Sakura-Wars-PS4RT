@@ -295,7 +295,120 @@ extern "C" uintptr_t ps4rtgpu_resolve(const char* scoped_nid) {
     return 0;
 }
 
+// ps4rt: bytes the faulting write is part of overwriting entirely, so any GPU data in them is
+// dead (0, 0: unknown); read by BufferCache::ReadMemory and the texture cache's CPU write
+// preservation on the faulting thread.
+thread_local unsigned long long ps4rt_fault_discard_lo = 0, ps4rt_fault_discard_hi = 0;
+// The replacing copy running on this thread (a new buffer's data or a whole-surface texture
+// tile, below). volatile: only the fault handler reads it, so the compiler would otherwise drop
+// the stores around the copy.
+static thread_local volatile unsigned long long new_buffer_lo = 0, new_buffer_hi = 0;
+
+// ps4rt: Sakura Wars' RsdxDevice11::CreateBuffer copies the initial data of a new buffer into
+// memory freshly allocated from the GPU heap, which the GPU often wrote while it belonged to an
+// earlier buffer; the loader routes that one memcpy here. These copies are ~99% of the write
+// faults on GPU-written pages, and each used to download the GPU bytes around it and wait for
+// the GPU (Scheduler::Finish: 50 FPS and a slowed game at 4K). The old GPU bytes under the new
+// buffer are dead, so the fault drops them instead (BufferCache::ReadMemory).
+extern "C" void* ps4rtgpu_new_buffer_copy(void* dst, const void* src, uint64_t size) {
+    if (auto* memory = Core::Memory::Instance(); memory && memory->GetRasterizer() && size) {
+        // Asynchronous downloads queued before must not land on the new data.
+        memory->GetRasterizer()->GetBufferCache().DropPendingAsync(
+            reinterpret_cast<unsigned long long>(dst), size);
+    }
+    new_buffer_lo = reinterpret_cast<unsigned long long>(dst);
+    new_buffer_hi = new_buffer_lo + size;
+    void* result = std::memcpy(dst, src, size);
+    new_buffer_lo = new_buffer_hi = 0;
+    return result;
+}
+
+// ps4rt: Sakura Wars uploads its textures (text lines and labels too) with the PS4 SDK's
+// GpuAddress::tileSurfaceRegion, linked into the game, often into memory that held an earlier
+// GPU-rendered surface; the loader routes its two calls of a region loop (1D and 2D tiling)
+// here (args: the internal tiling parameters, the tiled destination, the linear source, the
+// SurfaceRegion {left, top, front, right, bottom, back} and the source pitches). A region that
+// covers the whole surface rewrites all of its pixels, so any GPU data in its bytes is dead:
+// the write faults inside skip the GPU wait like the new-buffer copies above (the padding
+// pixels the loop skips are never sampled).
+using TileRegionLoop = int (*)(const void*, void*, const void*, const uint32_t*, uint32_t,
+                               uint32_t);
+static TileRegionLoop tile_region_loop = nullptr;
+
+extern "C" void ps4rtgpu_set_tile_region(uintptr_t loop) {
+    tile_region_loop = reinterpret_cast<TileRegionLoop>(loop);
+}
+
+static int TileSurfaceRegion(TileRegionLoop loop, const void* params, void* dst,
+                             const void* src, const uint32_t* region, uint32_t src_pitch,
+                             uint32_t src_slice_pitch) {
+    // The internal parameters (seen in Sakura's calls, the same for both loops): u32 words 3-5
+    // the surface's width, height and depth in elements (the SDK's whole-surface tile builds its
+    // region from them), 6-8 the same padded to whole tiles, 9 the bits per element, 10-11 the
+    // linear size and 12-13 the tiled size in bytes (u64). The tiled size from `dst` is the
+    // memory the new surface occupies; anything else leaves the faults as they were.
+    const auto* surface = static_cast<const uint32_t*>(params);
+    const bool whole = params && dst && region && region[0] == 0 && region[1] == 0 &&
+                       region[2] == 0 && region[3] == surface[3] && region[4] == surface[4] &&
+                       region[5] == surface[5] && surface[5] == 1;
+    unsigned long long bytes = 0;
+    if (whole) {
+        using U64 = unsigned long long;
+        const U64 linear = surface[10] | (U64(surface[11]) << 32);
+        const U64 tiled = surface[12] | (U64(surface[13]) << 32);
+        const uint32_t bits = surface[9];
+        const bool sane = (bits == 8 || bits == 16 || bits == 32 || bits == 64 || bits == 128) &&
+                          surface[6] >= surface[3] && surface[7] >= surface[4] &&
+                          linear == U64(surface[3]) * surface[4] * bits / 8 &&
+                          tiled == U64(surface[6]) * surface[7] * bits / 8 &&
+                          tiled <= (256ULL << 20);
+        if (sane) {
+            bytes = tiled;
+        }
+    }
+    if (bytes) {
+        if (auto* memory = Core::Memory::Instance(); memory && memory->GetRasterizer()) {
+            memory->GetRasterizer()->GetBufferCache().DropPendingAsync(
+                reinterpret_cast<unsigned long long>(dst), bytes);
+        }
+    }
+    if (bytes) {
+        new_buffer_lo = reinterpret_cast<unsigned long long>(dst);
+        new_buffer_hi = new_buffer_lo + bytes;
+    }
+    const int result = loop(params, dst, src, region, src_pitch, src_slice_pitch);
+    new_buffer_lo = new_buffer_hi = 0;
+    return result;
+}
+
+extern "C" int ps4rtgpu_tile_surface_region(const void* params, void* dst, const void* src,
+                                            const uint32_t* region, uint32_t src_pitch,
+                                            uint32_t src_slice_pitch) {
+    return TileSurfaceRegion(tile_region_loop, params, dst, src, region, src_pitch,
+                             src_slice_pitch);
+}
+
+// The same for tileSurfaceRegion's 2D-tiled loop (array modes 4-15).
+static TileRegionLoop tile_region_loop_2d = nullptr;
+
+extern "C" void ps4rtgpu_set_tile_region_2d(uintptr_t loop) {
+    tile_region_loop_2d = reinterpret_cast<TileRegionLoop>(loop);
+}
+
+extern "C" int ps4rtgpu_tile_surface_region_2d(const void* params, void* dst, const void* src,
+                                               const uint32_t* region, uint32_t src_pitch,
+                                               uint32_t src_slice_pitch) {
+    return TileSurfaceRegion(tile_region_loop_2d, params, dst, src, region, src_pitch,
+                             src_slice_pitch);
+}
+
 extern "C" int ps4rtgpu_handle_fault(void* ucontext, void* address) {
+    ps4rt_fault_discard_lo = ps4rt_fault_discard_hi = 0;
+    if (const auto fault = reinterpret_cast<unsigned long long>(address);
+        fault >= new_buffer_lo && fault < new_buffer_hi) {
+        ps4rt_fault_discard_lo = new_buffer_lo;
+        ps4rt_fault_discard_hi = new_buffer_hi;
+    }
     return Core::Signals::Instance()->DispatchAccessViolation(ucontext, address) ? 1 : 0;
 }
 

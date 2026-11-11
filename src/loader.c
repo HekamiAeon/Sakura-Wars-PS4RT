@@ -724,7 +724,9 @@ int main(int argc, char **argv) {
     if (!isa_table && cpu_missing_sets) { printf("STOP: this CPU lacks %s and no rewrite table matches the image\n", missing); return 20; }
     /* The stubs follow the image in the same low mapping (rel32 jmps reach them). */
     size_t stub_area = isa_table ? round_page(isa_stub_area_size(isa_table)) : 0;
-    image = allocate(round_page(size) + stub_area);
+    /* One more page after the ISA stubs for the runtime's own code stubs (rel32 calls reach
+     * it): the GPU hooks' in its second half. */
+    image = allocate(round_page(size) + stub_area + page_size);
     runtime_image_base = (uintptr_t)image;
     runtime_image_size = (uintptr_t)size;
     unsigned char *stubs = image + round_page(size);
@@ -810,6 +812,58 @@ int main(int argc, char **argv) {
                     missing, r.rewritten, r.jmp, r.relocated, r.int3, r.skipped);
         runtime_set_report_hook(isa_report_hook);
         protect(stubs, stub_area, 5);
+    }
+    {
+        /* Sakura Wars: RsdxDevice11::CreateBuffer's memcpy of the initial data (`mov edx,[r15];
+         * mov rdi,r12; call memcpy`) goes to ps4rtgpu_new_buffer_copy, which tells the GPU
+         * buffer cache that the destination is new data (see ps4rtgpu.cpp). The stub sits in
+         * the second half of the page after the ISA stubs (rel32 reach). */
+        static const unsigned char expect[]={0x41,0x8b,0x17, 0x4c,0x89,0xe7, 0xe8,0xb5,0x2b,0x01,0x00};
+        const uint64_t site=0x10c8d90; /* first byte of expect */
+        unsigned char *p=image+site, *stub=image+round_page(size)+stub_area+page_size/2;
+        int ok=gpu_enabled && site+sizeof(expect)<=size && !memcmp(p,expect,sizeof(expect));
+        if (ok) {
+            uint64_t target=(uint64_t)(uintptr_t)&ps4rtgpu_new_buffer_copy;
+            stub[0]=0x48; stub[1]=0xb8; memcpy(stub+2,&target,8); /* movabs rax,target */
+            stub[10]=0xff; stub[11]=0xe0;                          /* jmp rax */
+            unsigned char *call=p+6;
+            int32_t rel=(int32_t)(stub-(call+5));
+            memcpy(call+1,&rel,4);
+        }
+        printf("GPU: new-buffer copy 0x%" PRIx64 " %s\n",site+6,ok?"routed to the buffer cache":"NOT MATCHED");
+        /* The GpuAddress::tileSurfaceRegion call of its region loop (0x102fa0) goes to
+         * ps4rtgpu_tile_surface_region, which tells the buffer cache when a CPU texture update
+         * rewrites a whole surface (the same arguments, so a plain jump). */
+        static const unsigned char tile_expect[]={0xe8,0x8b,0xaf,0xff,0xff};
+        const uint64_t tile_site=0x108010, tile_loop=0x102fa0;
+        unsigned char *tp=image+tile_site, *tile_stub=stub+16;
+        int tile_ok=gpu_enabled && tile_site+sizeof(tile_expect)<=size &&
+                    !memcmp(tp,tile_expect,sizeof(tile_expect));
+        if (tile_ok) {
+            uint64_t target=(uint64_t)(uintptr_t)&ps4rtgpu_tile_surface_region;
+            ps4rtgpu_set_tile_region((uintptr_t)(image+tile_loop));
+            tile_stub[0]=0x48; tile_stub[1]=0xb8; memcpy(tile_stub+2,&target,8); /* movabs rax,target */
+            tile_stub[10]=0xff; tile_stub[11]=0xe0;                               /* jmp rax */
+            int32_t rel=(int32_t)(tile_stub-(tp+5));
+            memcpy(tp+1,&rel,4);
+        }
+        printf("GPU: CPU texture tile 0x%" PRIx64 " %s\n",tile_site,tile_ok?"routed to the buffer cache":"NOT MATCHED");
+        /* Its 2D-tiled loop (0x104e10) the same way. */
+        static const unsigned char tile2d_expect[]={0xe8,0x78,0xce,0xff,0xff};
+        const uint64_t tile2d_site=0x107f93, tile2d_loop=0x104e10;
+        unsigned char *t2=image+tile2d_site, *tile2d_stub=stub+32;
+        int tile2d_ok=gpu_enabled && tile2d_site+sizeof(tile2d_expect)<=size &&
+                      !memcmp(t2,tile2d_expect,sizeof(tile2d_expect));
+        if (tile2d_ok) {
+            uint64_t target=(uint64_t)(uintptr_t)&ps4rtgpu_tile_surface_region_2d;
+            ps4rtgpu_set_tile_region_2d((uintptr_t)(image+tile2d_loop));
+            tile2d_stub[0]=0x48; tile2d_stub[1]=0xb8; memcpy(tile2d_stub+2,&target,8);
+            tile2d_stub[10]=0xff; tile2d_stub[11]=0xe0;
+            int32_t rel=(int32_t)(tile2d_stub-(t2+5));
+            memcpy(t2+1,&rel,4);
+        }
+        printf("GPU: CPU texture tile 2D 0x%" PRIx64 " %s\n",tile2d_site,tile2d_ok?"routed to the buffer cache":"NOT MATCHED");
+        protect(image+round_page(size)+stub_area,page_size,5);
     }
     protect(traps, round_page((import_count + 1) * 32), 5);
     protect(image, round_page(size), 0);

@@ -143,14 +143,21 @@ public:
                 ++num_commands;
                 submit_cv.notify_one();
             }
+            WakeVoLabelWait();
             sem.acquire();
         } else {
-            std::scoped_lock lk{submit_mutex};
-            command_queue.emplace(std::move(func));
-            ++num_commands;
-            submit_cv.notify_one();
+            {
+                std::scoped_lock lk{submit_mutex};
+                command_queue.emplace(std::move(func));
+                ++num_commands;
+                submit_cv.notify_one();
+            }
+            WakeVoLabelWait();
         }
     }
+
+    // ps4rt: the GPU thread may be asleep on a video-out label; wake it to serve the command.
+    void WakeVoLabelWait();
 
     void ReserveCopyBufferSpace() {
         GpuQueue& gfx_queue = mapped_queues[GfxQueueId];

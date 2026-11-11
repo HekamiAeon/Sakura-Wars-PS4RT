@@ -435,7 +435,25 @@ void TextureCache::MarkAsMaybeDirty(ImageId image_id, Image& image) {
     UntrackImage(image_id);
 }
 
+} // namespace VideoCore
+// ps4rt: set by the fault handler on the faulting thread (ps4rtgpu.cpp).
+extern thread_local unsigned long long ps4rt_fault_discard_lo, ps4rt_fault_discard_hi;
+namespace VideoCore {
+
 void TextureCache::PreserveGpuImagesForCpuWrite(VAddr address, u64 size, bool assume_locks) {
+    // ps4rt: a write that is part of a copy replacing the memory (a new buffer's initial data or
+    // a whole-surface texture tile, see ps4rtgpu.cpp) lands where the game freed an earlier
+    // surface. Memory is only handed out again once the image there is dead, so its GPU pixels
+    // need no preserving. Sakura reuses the memory of its text textures this way all the time,
+    // and each preserve waited for the GPU twice (drops at 4K). PS4RT_CPU_IMAGE_PRESERVE=0 never
+    // preserves, =2 always does (the inherited rule).
+    static const int mode = [] {
+        const char* value = std::getenv("PS4RT_CPU_IMAGE_PRESERVE");
+        return value && (value[0] == '0' || value[0] == '2') && !value[1] ? value[0] - '0' : 1;
+    }();
+    if (mode == 0 || (mode == 1 && ps4rt_fault_discard_lo < ps4rt_fault_discard_hi)) {
+        return;
+    }
     const auto needs_copy = [address, size](const Image& image) {
         return image.SafeToDownload() && False(image.flags & ImageFlagBits::Aliased) &&
                GetCpuImageWritebackRange(image.info, image.track_addr, image.track_addr_end) &&

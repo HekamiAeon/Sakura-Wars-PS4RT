@@ -5,7 +5,9 @@
 
 #include "ps4rt_copy.h"
 
+#include <atomic>
 #include <deque>
+#include <mutex>
 #include <boost/container/small_vector.hpp>
 
 #include "common/interval_set.h"
@@ -14,6 +16,7 @@
 #include "video_core/buffer_cache/fault_manager.h"
 #include "video_core/buffer_cache/range_set.h"
 #include "video_core/renderer_vulkan/vk_semaphore.h"
+#include "video_core/renderer_vulkan/vk_staging_buffer_pool.h"
 
 namespace AmdGpu {
 struct Liverpool;
@@ -86,6 +89,10 @@ public:
     /// ps4rt: a guest write fault at `device_addr` was handled; unprotect its neighbourhood.
     void ExtendWriteFault(VAddr device_addr);
 
+    /// ps4rt: [addr, addr + size) is being overwritten whole by the CPU (a new buffer's
+    /// initial data): asynchronous downloads queued before must not publish over it.
+    void DropPendingAsync(VAddr addr, u64 size);
+
     /// Flushes any GPU modified buffer in the logical page range back to CPU memory.
     void ReadMemory(VAddr device_addr, u64 size, bool is_write = false, bool assume_locks = false);
 
@@ -130,10 +137,22 @@ private:
 
     void EnsureResident(const Buffer* arena, u64 first_block, u64 last_block);
 
-    void DownloadMemory(const Buffer* arena, VAddr device_addr, u64 size);
+    void DownloadMemory(const Buffer* arena, VAddr device_addr, u64 size,
+                        bool wait_pending = true);
+
+    /// ps4rt: a CPU write that shares a page with GPU-written bytes but misses them (the game
+    /// writes next to a small compute result every frame) copies those bytes back without
+    /// waiting for the GPU; they reach guest memory once the GPU is done (RetireAsyncDownloads).
+    bool AsyncWriteFault(const Buffer* arena, VAddr device_addr, u64 size, VAddr window_start,
+                         VAddr window_end);
+    /// Publishes the finished copies, or all of them after a full wait (`all`).
+    void RetireAsyncDownloads(bool all);
+    bool AsyncDownloadPending(VAddr addr, u64 size) const;
 
     bool SynchronizeMemory(const Buffer* arena, VAddr device_addr, u32 size, bool is_written,
                            bool is_texel_buffer);
+    /// ps4rt: CPU writes into bytes of pending asynchronous copies (uploaded despite them).
+    void ForEachPendingCpuWrite(VAddr addr, u64 size, auto&& func);
 
     /// ps4rt: batched small copies on the copy threads (Ps4RtCopy::QueueCopy).
     static void RunGuestCopy(const Ps4RtCopy::Item& item);
@@ -163,6 +182,25 @@ private:
     StreamBuffer stream_buffer;
     Buffer gds_buffer;
     RangeSet gpu_modified_ranges;
+    struct AsyncDownload {
+        u64 tick;
+        Vulkan::StagingBufferRef staging;
+        boost::container::small_vector<std::pair<VAddr, vk::BufferCopy>, 2> ranges;
+        /// Guest bytes of `ranges` when the copy was queued (same layout as the staging
+        /// copy): bytes the CPU changed since then are newer than the GPU's and are kept.
+        std::vector<u8> snapshot;
+        /// Ranges a later whole-buffer copy overwrote: never published (the data is dead).
+        boost::container::small_vector<std::pair<VAddr, VAddr>, 1> skips;
+    };
+    std::deque<AsyncDownload> async_downloads;
+    void AddPendingRanges(const AsyncDownload& entry);
+    RangeSet async_download_ranges; ///< bytes of async_downloads: the guest copy is older
+    mutable std::mutex async_mutex; ///< async_download_ranges (read by other threads)
+    std::atomic<bool> has_async_downloads{false};
+    const bool async_write_faults = [] {
+        const char* value = std::getenv("PS4RT_ASYNC_WRITE_FAULT");
+        return !(value && value[0] == '0');
+    }();
 
     std::unique_ptr<FaultManager> fault_manager;
     std::unique_ptr<Buffer> bda_pagetable_buffer;

@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <bit>
 #include <cstdlib>
+#include <cstring>
+#include <vector>
 #include <magic_enum/magic_enum.hpp>
 #include "ps4rt_copy.h"
 #include "ps4rt_toggles.h"
@@ -24,6 +26,11 @@
 #include "video_core/texture_cache/texture_cache.h"
 
 #include <vk_mem_alloc.h>
+
+extern thread_local unsigned long long ps4rt_fault_discard_lo, ps4rt_fault_discard_hi;
+/// Bytes the faulting write overwrites entirely (see ps4rtgpu_handle_fault), set on the GPU
+/// thread before AsyncWriteFault.
+static unsigned long long async_fault_discard_lo = 0, async_fault_discard_hi = 0;
 
 namespace VideoCore {
 
@@ -147,7 +154,9 @@ void BufferCache::ExtendWriteFault(VAddr device_addr) {
 }
 
 void BufferCache::ReadMemory(VAddr device_addr, u64 size, bool is_write, bool assume_locks) {
-    const auto flush_request = [this, device_addr, size, is_write] {
+    const u64 discard_lo = is_write ? ps4rt_fault_discard_lo : 0;
+    const u64 discard_hi = is_write ? ps4rt_fault_discard_hi : 0;
+    const auto flush_request = [this, device_addr, size, is_write, discard_lo, discard_hi] {
         const u32 first_block = device_addr >> block_shift;
         const u32 last_block = (device_addr + size - 1) >> block_shift;
         const auto* arena = GetArena(first_block, last_block);
@@ -160,7 +169,16 @@ void BufferCache::ReadMemory(VAddr device_addr, u64 size, bool is_write, bool as
             std::max<VAddr>(Common::AlignDown(device_addr, WindowSize), arena->cpu_addr);
         const VAddr window_end = std::min<VAddr>(
             std::max<VAddr>(window_start + WindowSize, device_addr + size), arena_end);
-        DownloadMemory(arena, window_start, window_end - window_start);
+        async_fault_discard_lo = discard_lo;
+        async_fault_discard_hi = discard_hi;
+        if (is_write && AsyncWriteFault(arena, device_addr, size, window_start, window_end)) {
+            memory_tracker->MarkRegionAsCpuModified(device_addr, size);
+            return;
+        }
+        // A write needs no wait for bytes only an asynchronous copy still holds: the publish
+        // keeps what the CPU writes (RetireAsyncDownloads) and uploads include it
+        // (ForEachPendingCpuWrite).
+        DownloadMemory(arena, window_start, window_end - window_start, !is_write);
         if (is_write) {
             memory_tracker->MarkRegionAsCpuModified(device_addr, size);
         }
@@ -172,7 +190,8 @@ void BufferCache::ReadMemory(VAddr device_addr, u64 size, bool is_write, bool as
     }
 }
 
-void BufferCache::DownloadMemory(const Buffer* arena, VAddr device_addr, u64 size) {
+void BufferCache::DownloadMemory(const Buffer* arena, VAddr device_addr, u64 size,
+                                 bool wait_pending) {
     boost::container::small_vector<vk::BufferCopy, 1> copies;
     u64 total_size_bytes = 0;
     const VAddr arena_base = arena->cpu_addr;
@@ -194,6 +213,10 @@ void BufferCache::DownloadMemory(const Buffer* arena, VAddr device_addr, u64 siz
         gpu_modified_ranges.Subtract(address, size);
     });
     if (total_size_bytes == 0) {
+        if (wait_pending && AsyncDownloadPending(device_addr, size)) {
+            scheduler.Finish();
+            RetireAsyncDownloads(true);
+        }
         return;
     }
     const auto download = staging_pool.Request(total_size_bytes, VideoCore::MemoryType::HostCached);
@@ -203,6 +226,8 @@ void BufferCache::DownloadMemory(const Buffer* arena, VAddr device_addr, u64 siz
     runtime.CopyBuffer(arena, download.buffer, copies);
     scheduler.Finish();
 
+    // Older asynchronous copies of these bytes go to guest memory first.
+    RetireAsyncDownloads(true);
     download.buffer->Invalidate(download.offset, download.size);
     for (const auto& copy : copies) {
         auto* dst_addr = std::bit_cast<u8*>(arena_base + copy.srcOffset);
@@ -212,12 +237,246 @@ void BufferCache::DownloadMemory(const Buffer* arena, VAddr device_addr, u64 siz
     memory_tracker->UnmarkRegionAsGpuModified(device_addr, size);
 }
 
-namespace {
-} // namespace
+// ps4rt: a guest CPU write to a page that also holds GPU-written bytes used to download the
+// window around it and wait for the GPU (Scheduler::Finish). Games often keep small GPU results
+// next to per-frame CPU data (Code Fairy: a 2 KiB brightness grid from cs 27a06d64, read by the
+// CPU for auto exposure); on the PS4 they share memory and that write never waits. Here, when
+// the faulting bytes are not GPU written, the GPU bytes of the same window are copied back
+// without waiting and written to guest memory once the GPU is done (RetireAsyncDownloads),
+// a frame or two later. Until then the host copy is the newer one: IsRegionGpuModified stays
+// true and uploads skip those bytes, except ones the CPU wrote since (ForEachPendingCpuWrite);
+// the publish keeps those too. PS4RT_ASYNC_WRITE_FAULT=0 restores the waiting download.
+bool BufferCache::AsyncWriteFault(const Buffer* arena, VAddr device_addr, u64 size,
+                                  VAddr window_start, VAddr window_end) {
+    if (!async_write_faults || EmulatorSettings.GetReadbacksMode() != GpuReadbacksMode::Relaxed) {
+        return false;
+    }
+    // The bytes a whole-buffer copy overwrites may be GPU written: they are dropped below.
+    const VAddr discard_lo = std::max<VAddr>(async_fault_discard_lo, window_start);
+    const VAddr discard_hi = std::min<VAddr>(async_fault_discard_hi, window_end);
+    const bool discard = discard_lo < discard_hi;
+    const bool fault_discarded =
+        discard && device_addr >= discard_lo && device_addr + size <= discard_hi;
+    if (!fault_discarded && gpu_modified_ranges.Intersects(device_addr, size)) {
+        // The CPU writes GPU-written bytes: they must be in guest memory first.
+        return false;
+    }
+    // The same window as the waiting download: the CPU may read any GPU result near its write
+    // (Code Fairy's brightness grid spans two pages; copying only the faulting page left most
+    // of it stale and broke auto exposure).
+    AsyncDownload entry{};
+    u64 total = 0;
+    memory_tracker->ForEachDownloadRange<false>(window_start, window_end - window_start,
+                                                [&](u64 address, u64 length) {
+        gpu_modified_ranges.ForEachInRange(address, length, [&](VAddr start, VAddr end) {
+            const auto add = [&](VAddr lo, VAddr hi) {
+                if (lo >= hi) {
+                    return;
+                }
+                entry.ranges.push_back({lo, vk::BufferCopy{
+                    .srcOffset = lo - arena->cpu_addr, .dstOffset = total, .size = hi - lo}});
+                total += Common::AlignUp(hi - lo, 64);
+            };
+            if (!discard || end <= discard_lo || start >= discard_hi) {
+                add(start, end);
+                return;
+            }
+            // Dead GPU bytes under the new buffer's data are not copied back.
+            add(start, discard_lo);
+            add(discard_hi, end);
+        });
+    });
+    if (discard) {
+        gpu_modified_ranges.Subtract(discard_lo, discard_hi - discard_lo);
+        // Copies queued while this memory held the old buffer must not land on the new one.
+        DropPendingAsync(discard_lo, discard_hi - discard_lo);
+    }
+    if (entry.ranges.empty()) {
+        if (!discard) {
+            return false;
+        }
+        // Nothing else in the window: the write goes ahead without any copy.
+        memory_tracker->UnmarkRegionAsGpuModified(window_start, window_end - window_start);
+        return true;
+    }
+    // In Relaxed mode GPU pages are only write protected, and once this returns the whole
+    // window is CPU writable: the game may write these very bytes (reset a counter, a
+    // constant) before the copy lands. Remember what they held so the publish keeps those
+    // writes instead of overwriting them with older GPU data (Sakura: lighting flicker and
+    // a GPU hang without this).
+    entry.snapshot.resize(total);
+    for (const auto& [address, copy] : entry.ranges) {
+        memory->CopySparseMemory(address, entry.snapshot.data() + copy.dstOffset, copy.size);
+    }
+    for (const auto& [address, copy] : entry.ranges) {
+        gpu_modified_ranges.Subtract(address, copy.size);
+    }
+    entry.staging = staging_pool.Request(total, VideoCore::MemoryType::HostCached, 0, true);
+    boost::container::small_vector<vk::BufferCopy, 2> copies;
+    for (const auto& [address, copy] : entry.ranges) {
+        copies.push_back(copy);
+        copies.back().dstOffset += entry.staging.offset;
+    }
+    runtime.CopyBuffer(arena, entry.staging.buffer, copies);
+    entry.tick = scheduler.CurrentTick();
+    memory_tracker->UnmarkRegionAsGpuModified(window_start, window_end - window_start);
+    std::scoped_lock lock{async_mutex};
+    for (const auto& [address, copy] : entry.ranges) {
+        async_download_ranges.Add(address, copy.size);
+    }
+    async_downloads.push_back(std::move(entry));
+    has_async_downloads.store(true, std::memory_order_release);
+    return true;
+}
+
+void BufferCache::RetireAsyncDownloads(bool all) {
+    if (!has_async_downloads.load(std::memory_order_acquire)) {
+        return;
+    }
+    // Called on every buffer bind: check the GPU tick known from the last submit and read
+    // the semaphore (a kernel call) only on every 64th check.
+    static std::atomic<u32> polls{0};
+    const auto done = [this](u64 tick) {
+        Vulkan::Semaphore* const semaphore = scheduler.GetWorkSemaphore();
+        if (semaphore->IsFree(tick)) {
+            return true;
+        }
+        if ((polls.fetch_add(1, std::memory_order_relaxed) & 63) != 0) {
+            return false;
+        }
+        semaphore->Refresh();
+        return semaphore->IsFree(tick);
+    };
+    std::scoped_lock lock{async_mutex};
+    bool retired = false;
+    static std::vector<u8> current, merged;
+    while (!async_downloads.empty() && (all || done(async_downloads.front().tick))) {
+        auto& entry = async_downloads.front();
+        entry.staging.Invalidate();
+        for (const auto& [address, copy] : entry.ranges) {
+            const u8* gpu = entry.staging.mapped + copy.dstOffset;
+            const u8* before = entry.snapshot.data() + copy.dstOffset;
+            current.resize(copy.size);
+            memory->CopySparseMemory(address, current.data(), copy.size);
+            const u8* src = gpu;
+            bool skipped = false;
+            for (const auto& [skip_lo, skip_hi] : entry.skips) {
+                const VAddr lo = std::max<VAddr>(skip_lo, address);
+                const VAddr hi = std::min<VAddr>(skip_hi, address + copy.size);
+                if (lo < hi) {
+                    if (!skipped) {
+                        merged.assign(gpu, gpu + copy.size);
+                        skipped = true;
+                    }
+                    std::memcpy(merged.data() + (lo - address), current.data() + (lo - address),
+                                hi - lo);
+                }
+            }
+            if (skipped) {
+                // Keep the new buffer's bytes; the merge below works on `merged`.
+                gpu = merged.data();
+                src = gpu;
+            }
+            if (std::memcmp(current.data(), before, copy.size) != 0) {
+                // The CPU wrote some of these bytes after the copy was queued: keep them.
+                if (!skipped) {
+                    merged.assign(gpu, gpu + copy.size);
+                }
+                for (u64 i = 0; i < copy.size; ++i) {
+                    if (current[i] != before[i]) {
+                        merged[i] = current[i];
+                    }
+                }
+                src = merged.data();
+            }
+            memory->TryWriteBacking(std::bit_cast<u8*>(address), src, copy.size);
+            // A later pending copy of the same bytes saw the guest value from before this
+            // publish; update it so the publish is not mistaken for a CPU write.
+            for (std::size_t later = 1; later < async_downloads.size(); ++later) {
+                auto& next = async_downloads[later];
+                for (const auto& [next_address, next_copy] : next.ranges) {
+                    const VAddr lo = std::max<VAddr>(address, next_address);
+                    const VAddr hi = std::min<VAddr>(address + copy.size,
+                                                     next_address + next_copy.size);
+                    if (lo < hi) {
+                        std::memcpy(next.snapshot.data() + next_copy.dstOffset +
+                                        (lo - next_address),
+                                    src + (lo - address), hi - lo);
+                    }
+                }
+            }
+        }
+        staging_pool.FreeDeferred(entry.staging);
+        async_downloads.pop_front();
+        retired = true;
+    }
+    if (retired) {
+        // Entries can share bytes (one per frame): rebuild from the ones still pending.
+        async_download_ranges.Clear();
+        for (const auto& entry : async_downloads) {
+            AddPendingRanges(entry);
+        }
+        has_async_downloads.store(!async_downloads.empty(), std::memory_order_release);
+    }
+}
+
+void BufferCache::DropPendingAsync(VAddr addr, u64 size) {
+    if (!has_async_downloads.load(std::memory_order_acquire)) {
+        return;
+    }
+    std::scoped_lock lock{async_mutex};
+    for (auto& pending : async_downloads) {
+        for (const auto& [address, copy] : pending.ranges) {
+            if (address < addr + size && address + copy.size > addr) {
+                pending.skips.push_back({addr, addr + size});
+                break;
+            }
+        }
+    }
+    // The guest bytes are the new ones now: uploads must not skip them as pending (they did,
+    // and draws used the old buffer's data for a frame: flickering lighting).
+    async_download_ranges.Subtract(addr, size);
+}
+
+// Pending bytes of an entry, without the ranges a new buffer overwrote (DropPendingAsync).
+void BufferCache::AddPendingRanges(const AsyncDownload& entry) {
+    for (const auto& [address, copy] : entry.ranges) {
+        boost::container::small_vector<std::pair<VAddr, VAddr>, 4> pieces{
+            {address, address + copy.size}};
+        for (const auto& [skip_lo, skip_hi] : entry.skips) {
+            boost::container::small_vector<std::pair<VAddr, VAddr>, 4> next;
+            for (const auto& [lo, hi] : pieces) {
+                if (skip_hi <= lo || skip_lo >= hi) {
+                    next.push_back({lo, hi});
+                    continue;
+                }
+                if (lo < skip_lo) {
+                    next.push_back({lo, skip_lo});
+                }
+                if (skip_hi < hi) {
+                    next.push_back({skip_hi, hi});
+                }
+            }
+            pieces = std::move(next);
+        }
+        for (const auto& [lo, hi] : pieces) {
+            async_download_ranges.Add(lo, hi - lo);
+        }
+    }
+}
+
+bool BufferCache::AsyncDownloadPending(VAddr addr, u64 size) const {
+    if (!has_async_downloads.load(std::memory_order_acquire)) {
+        return false;
+    }
+    std::scoped_lock lock{async_mutex};
+    return async_download_ranges.Intersects(addr, size);
+}
 
 std::pair<const Buffer*, u64> BufferCache::ObtainBuffer(VAddr device_addr, u32 size,
                                                         bool is_written, bool is_texel_buffer) {
     texture_cache.ResolveReadbacks(device_addr, size, true, ReadbackSource::BufferObtain);
+    RetireAsyncDownloads(false);
 
     
     // For read-only buffers use device local stream buffer to reduce renderpass breaks.
@@ -295,7 +554,7 @@ bool BufferCache::IsRegionCpuModified(VAddr addr, size_t size) {
 }
 
 bool BufferCache::IsRegionGpuModified(VAddr addr, size_t size) {
-    return memory_tracker->IsRegionGpuModified(addr, size);
+    return memory_tracker->IsRegionGpuModified(addr, size) || AsyncDownloadPending(addr, size);
 }
 
 void BufferCache::ProcessFaultBuffer() {
@@ -422,6 +681,43 @@ void BufferCache::EnsureResident(const Buffer* arena, u64 first_block, u64 last_
     runtime.CopyBuffer(staging.buffer, bda_pagetable_buffer.get(), copies);
 }
 
+// ps4rt: [addr, addr + size) is CPU modified and holds bytes of pending asynchronous copies,
+// whose host copy is newer than the guest's: an upload skips them. But the CPU may have written
+// some of them since the copy was queued (the publish keeps those, RetireAsyncDownloads), and
+// the GPU must see those writes: they are found against the copy's snapshot and uploaded.
+// (Sakura: 64 KiB and 38 KiB read-only buffers, about once every 20 s.) A CPU write of the
+// value the guest already held cannot be told apart and stays skipped.
+void BufferCache::ForEachPendingCpuWrite(VAddr addr, u64 size, auto&& func) {
+    static std::vector<u8> guest, state;
+    async_download_ranges.ForEachInRange(addr, size, [&](VAddr lo, VAddr hi) {
+        guest.resize(hi - lo);
+        memory->CopySparseMemory(lo, guest.data(), hi - lo);
+        // 1: same as the snapshot of the newest copy holding the byte, 2: changed since.
+        state.assign(hi - lo, 0);
+        for (const auto& entry : async_downloads) {
+            for (const auto& [address, copy] : entry.ranges) {
+                const VAddr from = std::max<VAddr>(address, lo);
+                const VAddr to = std::min<VAddr>(address + copy.size, hi);
+                const u8* before = entry.snapshot.data() + copy.dstOffset;
+                for (VAddr byte = from; byte < to; ++byte) {
+                    state[byte - lo] = guest[byte - lo] != before[byte - address] ? 2 : 1;
+                }
+            }
+        }
+        for (VAddr byte = lo; byte < hi;) {
+            if (state[byte - lo] != 2) {
+                ++byte;
+                continue;
+            }
+            const VAddr run = byte;
+            while (byte < hi && state[byte - lo] == 2) {
+                ++byte;
+            }
+            func(run, byte - run);
+        }
+    });
+}
+
 bool BufferCache::SynchronizeMemory(const Buffer* arena, VAddr device_addr, u32 size,
                                     bool is_written, bool is_texel_buffer) {
     boost::container::small_vector<vk::BufferCopy, 4> copies;
@@ -430,6 +726,17 @@ bool BufferCache::SynchronizeMemory(const Buffer* arena, VAddr device_addr, u32 
     memory_tracker->ForEachUploadRange(
         device_addr, size, is_written,
         [&](u64 addr, u64 size) {
+            if (AsyncDownloadPending(addr, size)) {
+                // The guest copy of these bytes is older than the host's (AsyncWriteFault).
+                std::scoped_lock lock{async_mutex};
+                const auto add = [&](VAddr start, u64 length) {
+                    copies.emplace_back(total_size_bytes, start, length);
+                    total_size_bytes += length;
+                };
+                async_download_ranges.ForEachNotInRange(addr, size, add);
+                ForEachPendingCpuWrite(addr, size, add);
+                return;
+            }
             copies.emplace_back(total_size_bytes, addr, size);
             total_size_bytes += size;
         },

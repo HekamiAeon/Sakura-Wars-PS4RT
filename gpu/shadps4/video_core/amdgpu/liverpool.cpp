@@ -86,6 +86,12 @@ Liverpool::~Liverpool() {
     process_thread.join();
 }
 
+void Liverpool::WakeVoLabelWait() {
+    if (vo_port) {
+        vo_port->SignalVoLabel();
+    }
+}
+
 void Liverpool::ProcessCommands() {
     // Process incoming commands with high priority
     while (num_commands) {
@@ -1238,7 +1244,18 @@ Liverpool::Task Liverpool::ProcessGraphics(std::span<const u32> dcb, std::span<c
                     if (rasterizer) {
                         rasterizer->DrainDrawPipe(static_cast<u32>(opcode));
                     }
-                    vo_port->WaitVoLabel([&] { return wait_reg_mem->Test(regs.reg_array); });
+                    // ps4rt: queued commands (write-fault readbacks, non-EOP flips) run on this
+                    // thread; a fault on a game thread must not wait for the next flip
+                    // (ported from the Code Fairy port).
+                    while (true) {
+                        vo_port->WaitVoLabel([&] {
+                            return wait_reg_mem->Test(regs.reg_array) || num_commands != 0;
+                        });
+                        if (wait_reg_mem->Test(regs.reg_array)) {
+                            break;
+                        }
+                        ProcessCommands();
+                    }
                     break;
                 }
                 // ps4rt: a fence handed to the draw recording thread counts as written: that
