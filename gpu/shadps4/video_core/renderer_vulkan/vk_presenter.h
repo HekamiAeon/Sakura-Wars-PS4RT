@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <atomic>
 #include <deque>
 
 
@@ -113,9 +114,10 @@ private:
     void SetExpectedGameSize(s32 width, s32 height);
 
 private:
-    float expected_ratio{1920.0 / 1080.0f};
-    u32 expected_frame_width{1920};
-    u32 expected_frame_height{1080};
+    // Written by the presenting thread, read by the GPU thread (see SetExpectedGameSize).
+    std::atomic<float> expected_ratio{1920.0 / 1080.0f};
+    std::atomic<u32> expected_frame_width{1920};
+    std::atomic<u32> expected_frame_height{1080};
 
     Frontend::WindowSDL& window;
     Instance instance;

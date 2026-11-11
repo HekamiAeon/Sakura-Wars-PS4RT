@@ -213,6 +213,12 @@ private:
 
     bool FilterDraw();
     bool FilterDrawPasses() const;
+    /// Ultrawide (targets wider than 16:9): a movie's centred box, the 2D screens' canvas clip.
+    void PrepareMovieBox(const GraphicsPipeline* pipeline);
+    void PrepareCanvasClip(const GraphicsPipeline* pipeline);
+    /// The screen area (NDC x0, y0, x1, y1) of a 2D UI draw (SakuraScene::FrameUiVs): its
+    /// vertices through the draw's world/view/projection constants. False when unreadable.
+    bool UiDrawRect(const GraphicsPipeline* pipeline, std::array<float, 4>& ndc) const;
     /// Everything of a direct draw after the pipeline selection (GPU thread or stage B).
     void DrawRecord(const GraphicsPipeline* pipeline, const PreparedDraw* used_prepared,
                     bool is_indexed, u32 index_offset);
@@ -343,6 +349,27 @@ private:
     std::unique_ptr<TemporalUpscaler> upscaler; // ps4rt: FSR (docs/upscaler.md)
     std::array<float, 2> draw_jitter{};         ///< viewport offset of the current draw, pixels
     std::array<float, 2> target_scale{1.0f, 1.0f}; ///< pass drawn into the upscaler's output-size images
+    /// Ultrawide: a pre-rendered movie stretched over a wider-than-16:9 target is drawn in a
+    /// centred box of its own aspect instead (guest pixels), with black sides.
+    struct MovieBox {
+        bool active = false;
+        float x = 0.0f, width = 0.0f;
+    } movie_box{};
+    /// Ultrawide: frames without a 3D scene (title, menus and other 2D screens) keep the game's
+    /// UI layer to the centred 16:9 canvas with black sides; the scene behind them is stale.
+    struct CanvasClip {
+        bool scene = false;   ///< 3D geometry drawn this frame
+        bool cleared = false; ///< the UI layer's sides were cleared this frame
+        bool backdrop = false; ///< a full-canvas 16:9 picture was drawn on the UI layer this frame
+        bool title = false;    ///< the title screen's painting is being drawn this frame
+        VAddr ui_layer = 0;   ///< wide target of the game's 2D UI draws (SakuraScene::FrameUiVs)
+        bool active = false;  ///< the current draw is clipped to [x0, x1)
+        bool clear = false;   ///< clear the sides before the current draw
+        s32 x0 = 0, x1 = 0;   ///< canvas, guest pixels
+    } canvas_clip{};
+    /// Ultrawide: horizontal stretch of the current UI draw about the viewport centre (fades
+    /// and other quads exactly covering the 16:9 canvas fill the whole width); 1 = none.
+    float ui_stretch = 1.0f;
     const bool host_markers_enabled;
     const bool guest_markers_enabled;
 

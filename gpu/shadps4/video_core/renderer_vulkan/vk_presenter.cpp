@@ -1025,34 +1025,44 @@ Frame* Presenter::GetRenderFrame() {
         }
     }
 
-    if (frame->width != expected_frame_width || frame->height != expected_frame_height ||
+    const u32 frame_width = expected_frame_width, frame_height = expected_frame_height;
+    if (frame->width != frame_width || frame->height != frame_height ||
         frame->is_hdr != swapchain.GetHDR()) {
-        RecreateFrame(frame, expected_frame_width, expected_frame_height);
+        RecreateFrame(frame, frame_width, frame_height);
     }
 
     return frame;
 }
 
 void Presenter::SetExpectedGameSize(s32 width, s32 height) {
+    // The present thread updates the size while the GPU thread reads it for its next frame
+    // (GetRenderFrame): compute it first and publish each value once, never an interim size.
     const auto& graphics = Ps4RtSettings::Get();
+    const float ratio = expected_ratio;
+    s32 frame_width, frame_height;
     if (graphics.CompactGraphicsMenu()) {
         const int output = std::clamp(graphics.output_res.load(),0,Ps4RtSettings::OutputCount-1);
-        expected_frame_width = Ps4RtSettings::OutputWidths[output];
-        expected_frame_height = Ps4RtSettings::OutputHeights[output];
-        return;
-    }
-    if (width <= 0 || height <= 0) {
-        return; // no surface (minimized window): keep the last frame size
-    }
-    const float ratio = (float)width / (float)height;
-
-    expected_frame_height = height;
-    expected_frame_width = width;
-    if (ratio > expected_ratio) {
-        expected_frame_width = static_cast<s32>(height * expected_ratio);
+        frame_width = Ps4RtSettings::OutputWidths[output];
+        frame_height = Ps4RtSettings::OutputHeights[output];
+        // The listed sizes are 16:9. A wider game frame (the experimental ultrawide modes)
+        // keeps its own aspect at the selected height instead of being squeezed into 16:9.
+        if (ratio > float(frame_width) / float(frame_height) + 0.01f) {
+            frame_width = s32(std::lround(frame_height * ratio)) & ~1;
+        }
     } else {
-        expected_frame_height = static_cast<s32>(width / expected_ratio);
+        if (width <= 0 || height <= 0) {
+            return; // no surface (minimized window): keep the last frame size
+        }
+        frame_width = width;
+        frame_height = height;
+        if (float(width) / float(height) > ratio) {
+            frame_width = static_cast<s32>(height * ratio);
+        } else {
+            frame_height = static_cast<s32>(width / ratio);
+        }
     }
+    expected_frame_width = u32(frame_width);
+    expected_frame_height = u32(frame_height);
 }
 
 } // namespace Vulkan

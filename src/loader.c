@@ -725,7 +725,7 @@ int main(int argc, char **argv) {
     /* The stubs follow the image in the same low mapping (rel32 jmps reach them). */
     size_t stub_area = isa_table ? round_page(isa_stub_area_size(isa_table)) : 0;
     /* One more page after the ISA stubs for the runtime's own code stubs (rel32 calls reach
-     * it): the GPU hooks' in its second half. */
+     * it): the ultrawide experiment's in the first half, the GPU hooks' in the second. */
     image = allocate(round_page(size) + stub_area + page_size);
     runtime_image_base = (uintptr_t)image;
     runtime_image_size = (uintptr_t)size;
@@ -863,7 +863,97 @@ int main(int argc, char **argv) {
             memcpy(t2+1,&rel,4);
         }
         printf("GPU: CPU texture tile 2D 0x%" PRIx64 " %s\n",tile2d_site,tile2d_ok?"routed to the buffer cache":"NOT MATCHED");
-        protect(image+round_page(size)+stub_area,page_size,5);
+        if (!getenv("PS4RT_EXPERIMENT_RT_GROWTH")) protect(image+round_page(size)+stub_area,page_size,5);
+    }
+    if (getenv("PS4RT_EXPERIMENT_RT_GROWTH")) {
+        /* UW experiment. World-anchored UI (NPC "..." bubbles, the Talk prompt) projects its
+         * anchor with the authored 1920-wide UI size, so at 21:9 it lands at 0.75x the head's
+         * offset. Each site's 5-byte width load becomes a call to a stub that loads
+         * max(width, height * viewport aspect) from the same camera, capped at 4x: unchanged at 16:9. */
+        static const unsigned char bubble_stub[]={0xc5,0xfa,0x10,0x52,0x38, 0xc5,0xea,0x59,0x51,0x48, 0xc5,0xea,0x5e,0x51,0x4c,
+            0xc5,0xfa,0x10,0x4a,0x34, 0xc5,0xf2,0x58,0xd9, 0xc5,0xe2,0x58,0xdb, 0xc5,0xea,0x5f,0xd1, 0xc5,0xea,0x5d,0xcb, 0xc3};
+        static const unsigned char talk_stub[]={0xc5,0xfb,0x10,0x42,0x34, 0xc5,0xfa,0x16,0xd0, 0xc5,0xea,0x59,0x51,0x48,
+            0xc5,0xea,0x5e,0x51,0x4c, 0xc5,0xfa,0x58,0xd8, 0xc5,0xe2,0x58,0xdb, 0xc5,0xea,0x5f,0xd0, 0xc5,0xea,0x5d,0xd3,
+            0xc4,0xe3,0x79,0x0c,0xc2,0x01, 0xc3};
+        static const struct { uint64_t site; unsigned char expect[5]; const unsigned char *stub; size_t len; const char *name; } anchors[]={
+            {0xaa62c6,{0xc5,0xfa,0x10,0x4a,0x34},bubble_stub,sizeof(bubble_stub),"NPC bubble"},
+            {0xaa0d89,{0xc5,0xfb,0x10,0x42,0x34},talk_stub,sizeof(talk_stub),"Talk prompt"},
+        };
+        unsigned char *uw_stubs=image+round_page(size)+stub_area, *at=uw_stubs;
+        for (size_t a=0;a<sizeof(anchors)/sizeof(*anchors);++a) {
+            unsigned char *p=image+anchors[a].site;
+            int ok=anchors[a].site+5<=size && !memcmp(p,anchors[a].expect,5);
+            if (ok) {
+                memcpy(at,anchors[a].stub,anchors[a].len);
+                int32_t rel=(int32_t)(at-(p+5));
+                p[0]=0xe8; memcpy(p+1,&rel,4);
+                at+=(anchors[a].len+15)&~(size_t)15;
+            }
+            printf("UW experiment: %s anchor 0x%" PRIx64 " %s\n",anchors[a].name,anchors[a].site,ok?"widened":"NOT MATCHED");
+        }
+        protect(uw_stubs,page_size,5);
+        /* Skip the growth alerts of RenderTargetManager and ArukasSurfaceMemoryManager (debug
+         * traps after the buffer has been freed for reallocation at the new, larger size). */
+        static const uint64_t sites[]={0xf2dcdf,0xf2ddea,0xf2def8,0xd985df,0xd986ea,0xd987f8};
+        for (size_t s=0;s<sizeof(sites)/sizeof(*sites);++s) {
+            unsigned char *p=image+sites[s];
+            int32_t rel; memcpy(&rel,p-4,4);
+            int ok=p[0]==0xcd && p[1]==0x41 && p[-5]==0xe8 && sites[s]+rel==0xf95a80;
+            if (ok) { p[0]=0x66; p[1]=0x90; }
+            printf("UW experiment: alert trap 0x%" PRIx64 " %s\n",sites[s],ok?"skipped":"NOT MATCHED");
+        }
+        /* The render target pool starts at a fixed 400 MiB (580 MiB when sceKernelIsNeoMode),
+         * enough for every 16:9 scene. A wider render outgrows it on the first field load, and
+         * the game then frees and regrows the pool mid-scene: for that one frame the outline
+         * (PostEdge) pass reads targets that were not rendered yet, and the outlines flicker. Size
+         * it up front for the render resolution: measured field needs 434 MiB at 2560x1080 and
+         * 1149 MiB at 3840x2160 (about 77 MiB + 129.3 MiB per megapixel), plus a generous 50%
+         * for heavier scenes (unused pool costs nothing that matters), never below 400 MiB. */
+        unsigned rw=0, rh=0;
+        const char *ga=getenv("PS4RT_GUEST_ARGS");
+        if (ga) {
+            const char *q;
+            if ((q=strstr(ga,"--renderres_x="))) rw=(unsigned)strtoul(q+14,NULL,10);
+            else if ((q=strstr(ga,"--res_x="))) rw=(unsigned)strtoul(q+8,NULL,10);
+            if ((q=strstr(ga,"--renderres_y="))) rh=(unsigned)strtoul(q+14,NULL,10);
+            else if ((q=strstr(ga,"--res_y="))) rh=(unsigned)strtoul(q+8,NULL,10);
+        }
+        if (rw && rh && rw<=16384 && rh<=16384) {
+            double mib=1.5*(77.0+129.3*((double)rw*rh/1e6));
+            uint32_t pool=(uint32_t)(((uint64_t)mib+15)/16*16)<<20;
+            if (pool<0x19000000u) pool=0x19000000u;
+            /* test eax,eax; mov eax,0x19000000; mov ecx,0x24400000; ...; cmove rcx,rax */
+            static const unsigned char expect[]={0x85,0xc0,0xb8,0x00,0x00,0x00,0x19,0xb9,0x00,0x00,0x40,0x24};
+            unsigned char *p=image+0x1530ee;
+            int ok=0x1530ee + sizeof(expect)<=size &&!memcmp(p,expect,sizeof(expect));
+            if (ok) { memcpy(p+3,&pool,4); memcpy(p+8,&pool,4); }
+            printf("UW experiment: render target pool %u MiB for %ux%u %s\n",pool>>20,rw,rh,ok?"set":"NOT MATCHED");
+            /* The pool lives in the game's GPU ("garlic") heap, a fixed 0x80000000 + 0x58700000
+             * (3463 MiB; +512 MiB when sceKernelIsNeoMode). Grow it by the pool's growth plus a
+             * generous 1 GiB for the larger textures and surfaces of the higher resolution, and
+             * grow the emulated console's direct memory (PS4RT_DMEM_MB, created on the game's
+             * first allocation, after this) by the same amount. 16:9 keeps the original sizes. */
+            if (ok && pool>0x19000000u) {
+                uint64_t extra=(uint64_t)pool-0x19000000u+(UINT64_C(1)<<30);
+                uint64_t garlic=UINT64_C(0xd8700000)+extra;
+                /* lea rcx,[rbx+0x58700000]; lea r14,[rbx+0x78700000]  ->  movabs rcx,garlic; mov r14,rcx; nop */
+                static const unsigned char heap_expect[]={0x48,0x8d,0x8b,0x00,0x00,0x70,0x58,0x4c,0x8d,0xb3,0x00,0x00,0x70,0x78};
+                unsigned char *h=image+0x14f7d2;
+                int hok=0x14f7d2 + sizeof(heap_expect)<=size && !memcmp(h,heap_expect,sizeof(heap_expect));
+                if (hok) {
+                    h[0]=0x48; h[1]=0xb9; memcpy(h+2,&garlic,8);
+                    h[10]=0x49; h[11]=0x89; h[12]=0xce; h[13]=0x90;
+                    unsigned long need=5056+(unsigned long)(extra>>20);
+                    const char *cur=getenv("PS4RT_DMEM_MB");
+                    if (!cur || strtoul(cur,NULL,10)<need) {
+                        char text[32]; snprintf(text,sizeof(text),"%lu",need);
+                        setenv("PS4RT_DMEM_MB",text,1);
+                    }
+                }
+                printf("UW experiment: GPU heap %" PRIu64 " MiB, direct memory %s MiB %s\n",garlic>>20,
+                       getenv("PS4RT_DMEM_MB")?getenv("PS4RT_DMEM_MB"):"5056",hok?"set":"NOT MATCHED");
+            }
+        }
     }
     protect(traps, round_page((import_count + 1) * 32), 5);
     protect(image, round_page(size), 0);
@@ -898,7 +988,22 @@ int main(int argc, char **argv) {
     }
     printf("Entering original x86-64 code at guest offset 0x%" PRIx64 "\n", entry);
     entered_game=1;
-    struct { uint64_t argc; const char *argv[2]; } params = {1, {"/app0/eboot.bin", NULL}};
+    /* The game's argv: its path, then PS4RT_GUEST_ARGS split at spaces (the engine's own
+       command-line options, e.g. --res_x=2560; the launcher sets it for experimental modes). */
+    enum { MAX_GUEST_ARGS=16 };
+    struct { uint64_t argc; const char *argv[MAX_GUEST_ARGS+2]; } params = {1, {"/app0/eboot.bin", NULL}};
+    const char *guest_args=getenv("PS4RT_GUEST_ARGS");
+    if (guest_args && *guest_args) {
+        char *copy=strdup(guest_args), *save=NULL;
+        for (char *arg=copy?strtok_r(copy," ",&save):NULL; arg; arg=strtok_r(NULL," ",&save)) {
+            if (params.argc==MAX_GUEST_ARGS+1) { fprintf(stderr,"Runtime: PS4RT_GUEST_ARGS: ignoring arguments after %d\n",MAX_GUEST_ARGS); break; }
+            params.argv[params.argc++]=arg;
+        }
+        params.argv[params.argc]=NULL;
+        printf("Runtime: game arguments:");
+        for (uint64_t a=1;a<params.argc;++a) printf(" %s",params.argv[a]);
+        putchar('\n');
+    }
 #ifdef _WIN32
     typedef void (ABI *Entry)(void *, void (ABI *)(void));
     ((Entry)(image + entry))(&params, guest_exit);
