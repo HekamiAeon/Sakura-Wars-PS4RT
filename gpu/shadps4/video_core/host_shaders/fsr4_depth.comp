@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// ps4rt: FSR 4 v07's pre-pass picks the nearest of nine depths (3x3) and takes that pixel's
+// motion vector, comparing with "less is nearer": its shaders are built for standard depth and
+// ignore the provider's DEPTH_INVERTED flag. A reversed-depth game (sky 0, near 1) gets this
+// standard-depth copy, 1 - depth, so edges keep their own motion instead of the background's.
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0) uniform texture2D depth_tex;
+layout(binding = 1, r32f) uniform writeonly image2D standard_depth;
+
+void main() {
+    const ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+    if (any(greaterThanEqual(pixel, imageSize(standard_depth)))) {
+        return;
+    }
+    imageStore(standard_depth, pixel, vec4(1.0 - texelFetch(depth_tex, pixel, 0).r));
+}

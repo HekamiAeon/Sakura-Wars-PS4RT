@@ -23,6 +23,7 @@
 #include "video_core/host_shaders/upscale_merge_comp.h"
 #include "video_core/host_shaders/upscale_merge_unorm_comp.h"
 #include "video_core/host_shaders/upscale_reactive_comp.h"
+#include "video_core/host_shaders/fsr4_depth_comp.h"
 #include "video_core/host_shaders/taa_comp.h"
 #include "video_core/host_shaders/taa_sharpen_comp.h"
 #include "video_core/host_shaders/taa_sharpen_ldr_comp.h"
@@ -506,6 +507,12 @@ bool TemporalUpscaler::EnsureResources(u32 w, u32 h, u32 ow, u32 oh, bool hdr) {
                    vk::ImageUsageFlagBits::eTransferSrc);
     make_image(reactive_image, reactive_view, vk::Format::eR8Unorm,
                vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled);
+    fsr4_depth_view.reset();
+    fsr4_depth_image = VideoCore::UniqueImage{};
+    if (use_fsr4) {
+        make_image(fsr4_depth_image, fsr4_depth_view, vk::Format::eR32Sfloat,
+                   vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled);
+    }
     for (u32 i = 0; i < taa_history.size(); ++i) {
         taa_history_views[i].reset();
         taa_history[i] = VideoCore::UniqueImage{};
@@ -610,6 +617,29 @@ void TemporalUpscaler::CreatePipelines() {
     merge_unorm_pipeline = compute(UPSCALE_MERGE_UNORM_COMP, *merge_pipeline_layout);
     storage_layout(3, reactive_desc_layout, reactive_pipeline_layout, 3 * sizeof(float));
     reactive_pipeline = compute(UPSCALE_REACTIVE_COMP, *reactive_pipeline_layout);
+    {
+        // Standard depth for FSR 4: the game's depth (sampled) to an R32F storage image.
+        const std::array<vk::DescriptorSetLayoutBinding, 2> bindings{{
+            {.binding = 0,
+             .descriptorType = vk::DescriptorType::eSampledImage,
+             .descriptorCount = 1,
+             .stageFlags = vk::ShaderStageFlagBits::eCompute},
+            {.binding = 1,
+             .descriptorType = vk::DescriptorType::eStorageImage,
+             .descriptorCount = 1,
+             .stageFlags = vk::ShaderStageFlagBits::eCompute},
+        }};
+        fsr4_depth_desc_layout = Check(device.createDescriptorSetLayoutUnique({
+            .flags = vk::DescriptorSetLayoutCreateFlagBits::ePushDescriptorKHR,
+            .bindingCount = u32(bindings.size()),
+            .pBindings = bindings.data(),
+        }));
+        fsr4_depth_pipeline_layout = Check(device.createPipelineLayoutUnique({
+            .setLayoutCount = 1,
+            .pSetLayouts = &*fsr4_depth_desc_layout,
+        }));
+        fsr4_depth_pipeline = compute(FSR4_DEPTH_COMP, *fsr4_depth_pipeline_layout);
+    }
     storage_layout(2, taa_sharpen_desc_layout, taa_sharpen_pipeline_layout, sizeof(float));
     taa_sharpen_pipeline = compute(TAA_SHARPEN_COMP, *taa_sharpen_pipeline_layout);
     taa_sharpen_ldr_pipeline = compute(TAA_SHARPEN_LDR_COMP, *taa_sharpen_pipeline_layout);
@@ -2318,6 +2348,54 @@ bool TemporalUpscaler::RecordFsr4(vk::CommandBuffer cmdbuf, Fsr4Upscaler::Image 
                                   Fsr4Upscaler::Image depth, u32 w, u32 h, u32 ow, u32 oh,
                                   float frame_ms, bool hdr) {
     const auto& settings = Ps4RtSettings::Get();
+    // FSR 4 v07 takes each pixel's motion vector from the nearest of its 3x3 depths, comparing
+    // for standard depth: the provider never passes DEPTH_INVERTED to its shaders. With reversed
+    // depth it took the farther neighbour at every edge, e.g. the sky's motion for a character's
+    // outline. A reversed-depth game gets a standard-depth copy (CUSA16429).
+    if (camera_motion.DepthInverted() && fsr4_depth_pipeline && fsr4_depth_view) {
+        const vk::Image standard = vk::Image(fsr4_depth_image);
+        const auto barrier = [&](vk::ImageLayout old_layout, vk::PipelineStageFlags2 src_stage,
+                                 vk::AccessFlags2 src_access, vk::PipelineStageFlags2 dst_stage,
+                                 vk::AccessFlags2 dst_access) {
+            const vk::ImageMemoryBarrier2 b{
+                .srcStageMask = src_stage,
+                .srcAccessMask = src_access,
+                .dstStageMask = dst_stage,
+                .dstAccessMask = dst_access,
+                .oldLayout = old_layout,
+                .newLayout = vk::ImageLayout::eGeneral,
+                .image = standard,
+                .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+            };
+            cmdbuf.pipelineBarrier2({.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &b});
+        };
+        // FSR 4 read the previous frame's copy: all commands before.
+        barrier(vk::ImageLayout::eUndefined, vk::PipelineStageFlagBits2::eAllCommands,
+                vk::AccessFlagBits2::eNone, vk::PipelineStageFlagBits2::eComputeShader,
+                vk::AccessFlagBits2::eShaderWrite);
+        const vk::DescriptorImageInfo depth_info{.imageView = depth.view,
+                                                 .imageLayout = vk::ImageLayout::eGeneral};
+        const vk::DescriptorImageInfo standard_info{.imageView = *fsr4_depth_view,
+                                                    .imageLayout = vk::ImageLayout::eGeneral};
+        const std::array<vk::WriteDescriptorSet, 2> writes{{
+            {.dstBinding = 0,
+             .descriptorCount = 1,
+             .descriptorType = vk::DescriptorType::eSampledImage,
+             .pImageInfo = &depth_info},
+            {.dstBinding = 1,
+             .descriptorCount = 1,
+             .descriptorType = vk::DescriptorType::eStorageImage,
+             .pImageInfo = &standard_info},
+        }};
+        cmdbuf.bindPipeline(vk::PipelineBindPoint::eCompute, *fsr4_depth_pipeline);
+        cmdbuf.pushDescriptorSetKHR(vk::PipelineBindPoint::eCompute, *fsr4_depth_pipeline_layout,
+                                    0, writes);
+        cmdbuf.dispatch((w + 7) / 8, (h + 7) / 8, 1);
+        barrier(vk::ImageLayout::eGeneral, vk::PipelineStageFlagBits2::eComputeShader,
+                vk::AccessFlagBits2::eShaderWrite, vk::PipelineStageFlagBits2::eComputeShader,
+                vk::AccessFlagBits2::eShaderRead);
+        depth = {standard, *fsr4_depth_view, w, h};
+    }
     // Same jitter convention as FSR 3; the menu (or toggle 1 << 26) flips it for tests.
     const float sign =
         Ps4RtToggle::Disabled(1u << 26) != settings.fsr4_invert_jitter.load() ? -1.0f : 1.0f;

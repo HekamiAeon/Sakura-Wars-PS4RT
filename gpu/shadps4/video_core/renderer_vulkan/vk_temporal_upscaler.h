@@ -329,6 +329,12 @@ private:
     vk::UniqueDescriptorSetLayout reactive_desc_layout;
     vk::UniquePipelineLayout reactive_pipeline_layout;
     vk::UniquePipeline reactive_pipeline;
+    /// FSR 4 v07 takes standard depth (fsr4_depth.comp): a reversed-depth game's copy, R32F.
+    VideoCore::UniqueImage fsr4_depth_image;
+    vk::UniqueImageView fsr4_depth_view;
+    vk::UniqueDescriptorSetLayout fsr4_depth_desc_layout;
+    vk::UniquePipelineLayout fsr4_depth_pipeline_layout;
+    vk::UniquePipeline fsr4_depth_pipeline;
     vk::UniqueDescriptorSetLayout merge_desc_layout;
     vk::UniquePipelineLayout merge_pipeline_layout;
     vk::UniquePipeline merge_pipeline;
