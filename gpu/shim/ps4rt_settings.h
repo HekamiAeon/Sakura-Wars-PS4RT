@@ -28,8 +28,9 @@ inline constexpr int OutputCount = 7;
 inline constexpr int OutputNative = 0;
 inline constexpr int OutputDefault = OutputNative;
 
-/// An output can be chosen for an internal resolution when it is larger in both dimensions and
-/// has the same aspect within 1% (2560x1080 -> 3440x1440 is the only inexact pair). Native always.
+/// An output can be chosen for an internal resolution when it is larger in both dimensions, at
+/// most 3x (FSR's range), and has the same aspect within 1% (2560x1080 -> 3440x1440 is the only
+/// inexact pair). Native always.
 bool OutputAllowed(int internal_width, int internal_height, int output);
 /// The scene size this launch renders at: PS4RT_INTERNAL_RES (the launcher, from the menu's
 /// Internal resolution), else the engine options in PS4RT_GUEST_ARGS, else 1920x1080.

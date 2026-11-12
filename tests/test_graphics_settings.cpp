@@ -66,6 +66,8 @@ int main() {
     for (int r = 0; r < int(Ps4RtGraphics::Resolutions.size()); ++r)
         assert(OutputAllowed(Ps4RtGraphics::ResolutionWidths[r], Ps4RtGraphics::ResolutionHeights[r], OutputNative));
     assert(OutputAllowed(1280, 720, 1) && OutputAllowed(1280, 720, 3) && !OutputAllowed(1280, 720, 4));
+    // At most FSR's 3x: 1024x576 to 4K (3.75x) is not offered; 720p to 4K is exactly 3x.
+    assert(OutputAllowed(1024, 576, 1) && OutputAllowed(1024, 576, 2) && !OutputAllowed(1024, 576, 3));
     assert(!OutputAllowed(1920, 1080, 1) && OutputAllowed(1920, 1080, 2) && OutputAllowed(1920, 1080, 3));
     for (int o = 1; o < OutputCount; ++o) assert(!OutputAllowed(3840, 2160, o)); // 4K: AA only
     assert(OutputAllowed(2560, 1080, 4) && !OutputAllowed(2560, 1080, 2) && !OutputAllowed(2560, 1080, 6));

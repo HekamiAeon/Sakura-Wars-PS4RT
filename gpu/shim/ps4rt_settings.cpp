@@ -377,7 +377,9 @@ bool OutputAllowed(int iw, int ih, int output) {
     if (output < 0 || output >= OutputCount || iw <= 0 || ih <= 0) return false;
     const int ow = OutputWidths[output], oh = OutputHeights[output];
     const double in = double(iw) / ih, out = double(ow) / oh;
-    return ow > iw && oh > ih && std::abs(out - in) <= 0.01 * in;
+    // At most 3x per axis, FSR's supported range (Ultra Performance): 1024x576 to 4K (3.75x)
+    // looked worse than to 1080p; 1280x720 to 4K is exactly 3x.
+    return ow > iw && oh > ih && ow <= 3 * iw && oh <= 3 * ih && std::abs(out - in) <= 0.01 * in;
 }
 
 namespace {

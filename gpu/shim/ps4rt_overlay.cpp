@@ -552,8 +552,8 @@ void CompactGraphics() {
             }
             ChoiceRow("FSR Upscale output", s.output_res, labels, values, count,
                       "This setting has no effect unless FSR is enabled. Only resolutions larger than "
-                      "the Internal resolution, at its aspect, are offered; Native enables FSR "
-                      "anti-aliasing without upscaling. Applies live.");
+                      "the Internal resolution, at its aspect and up to 3x (FSR's range), are offered; "
+                      "Native enables FSR anti-aliasing without upscaling. Applies live.");
         }
         ChoiceRow("Display mode", s.display_mode, Ps4RtGraphics::DisplayModeNames.data(),
                   nullptr, Ps4RtGraphics::DisplayModeCount,
