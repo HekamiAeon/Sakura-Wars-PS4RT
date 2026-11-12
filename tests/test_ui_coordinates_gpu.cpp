@@ -70,7 +70,14 @@ int main() {
     VkBuffer buffer{}; VmaAllocation allocation{}; VmaAllocationInfo mapped{};
     assert(vmaCreateBuffer(instance.GetAllocator(),&bi,&ai,&buffer,&allocation,&mapped)==VK_SUCCESS);
     const auto* pixels = static_cast<const float*>(mapped.pMappedData);
-    for (const auto size : {vk::Extent2D{1920,1080}, vk::Extent2D{2560,1440}, vk::Extent2D{3840,2160}}) {
+    // The game's frame (the HUD's guest targets) and the FSR output the HUD is redirected to:
+    // 1080p to 1080p/1440p/4K, and the Internal resolutions' frames (32:9 to 5120x1440, 720p to
+    // 4K, 2560x1080 to its aspect-fitted 3414x1440, 4K native AA).
+    struct Case { vk::Extent2D frame, size; };
+    for (const auto [frame, size] : {Case{{1920,1080},{1920,1080}}, Case{{1920,1080},{2560,1440}},
+            Case{{1920,1080},{3840,2160}}, Case{{3840,1080},{5120,1440}}, Case{{1280,720},{3840,2160}},
+            Case{{2560,1080},{3414,1440}}, Case{{3840,2160},{3840,2160}}}) {
+        SceneResolution::game_frame = {frame.width, frame.height};
         VideoCore::UniqueImage image(device,instance.GetAllocator());
         image.Create({.imageType=vk::ImageType::e2D,.format=format,
             .extent={size.width,size.height,1},.mipLevels=1,.arrayLayers=1,
@@ -81,8 +88,8 @@ int main() {
         for (const bool native_ui : {true,false}) {
             // Mask users divide logical pixel coordinates by native dimensions. A physical
             // display fetch uses the actual output dimensions; shrinking it zooms the image.
-            const auto code = Fragment(native_ui?1920.f:float(size.width),
-                                       native_ui?1080.f:float(size.height));
+            const auto code = Fragment(native_ui?float(frame.width):float(size.width),
+                                       native_ui?float(frame.height):float(size.height));
             const auto fragment = device.createShaderModuleUnique({.codeSize=code.size()*4,
                 .pCode=code.data()},nullptr,d).value;
             const std::array stages{
@@ -106,7 +113,8 @@ int main() {
                 .pInputAssemblyState=&ia,.pViewportState=&vs,.pRasterizationState=&rs,
                 .pMultisampleState=&ms,.pColorBlendState=&bs,.layout=*layout},nullptr,d).value;
             Shader::PushData data{};
-            data.scene_size = UiComposition::FragmentSize(native_ui,1920,1080,size.width,size.height);
+            data.scene_size = UiComposition::FragmentSize(native_ui,frame.width,frame.height,
+                                                          size.width,size.height);
             const auto cmd = scheduler.CommandBuffer();
             vk::ImageMemoryBarrier2 barrier{.srcStageMask=vk::PipelineStageFlagBits2::eAllCommands,
                 .srcAccessMask=vk::AccessFlagBits2::eMemoryRead|vk::AccessFlagBits2::eMemoryWrite,
@@ -139,13 +147,19 @@ int main() {
             cmd.copyImageToBuffer(image.image,vk::ImageLayout::eTransferSrcOptimal,buffer,copies,d);
             scheduler.Finish();
             assert(vmaInvalidateAllocation(instance.GetAllocator(),allocation,0,VK_WHOLE_SIZE)==VK_SUCCESS);
+            // Exact when the output is a whole multiple of 1920x1080 units of the frame, else
+            // within one guest pixel (the rounded size).
+            const bool exact = !native_ui || ((size.width*1920u)%frame.width==0 &&
+                                              (size.height*1080u)%frame.height==0);
+            const float tx = exact ? 1e-5f : 1.f/frame.width, ty = exact ? 1e-5f : 1.f/frame.height;
             for(u32 i=0;i<4;++i) {
-                assert(std::abs(pixels[4*i]-(float(points[i].x)+.5f)/size.width)<1e-5f);
-                assert(std::abs(pixels[4*i+1]-(float(points[i].y)+.5f)/size.height)<1e-5f);
+                assert(std::abs(pixels[4*i]-(float(points[i].x)+.5f)/size.width)<tx);
+                assert(std::abs(pixels[4*i+1]-(float(points[i].y)+.5f)/size.height)<ty);
                 assert(pixels[4*i+3]==1.f);
             }
         }
     }
     vmaDestroyBuffer(instance.GetAllocator(),buffer,allocation);
-    std::puts("ui-coordinates-gpu: native UI and physical display coordinates agree at 1080p/1440p/4K");
+    std::puts("ui-coordinates-gpu: native UI and physical display coordinates agree for 1080p and "
+              "Internal resolution frames at 1080p to 5120x1440 outputs");
 }

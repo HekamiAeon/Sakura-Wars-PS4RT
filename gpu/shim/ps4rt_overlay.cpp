@@ -528,17 +528,32 @@ void CompactGraphics() {
         Help(kInternalResolutionHelp);
         ImGui::PopID();
         {
-            int sw, sh, ow, oh;
+            // The internal resolution this launch renders at (a new choice applies on restart).
+            int sw, sh;
             Ps4RtSettings::SceneSize(sw, sh);
-            Ps4RtSettings::FsrOutputSize(ow, oh);
-            char text[96];
-            if (s.upscaler == Ps4RtSettings::UpscalerOff || s.temporal_problem)
-                std::snprintf(text, sizeof(text), "%d x %d (original)", sw, sh);
-            else if (ow == sw && oh == sh)
-                std::snprintf(text, sizeof(text), "%d x %d (native AA)", sw, sh);
-            else
-                std::snprintf(text, sizeof(text), "%dx%d to %dx%d (%.2fx)", sw, sh, ow, oh, float(oh) / float(sh));
+            char text[32];
+            std::snprintf(text, sizeof(text), "%d x %d", sw, sh);
             InfoRow("Current Applied Resolution:", text);
+        }
+        {
+            // Outputs for the selected internal resolution (same aspect family, larger); Native first.
+            const int r = std::clamp(s.render_resolution.load(), 0, int(G::Resolutions.size()) - 1);
+            const int iw = G::ResolutionWidths[r], ih = G::ResolutionHeights[r];
+            if (!Ps4RtSettings::OutputAllowed(iw, ih, s.output_res)) Store(s.output_res, Ps4RtSettings::OutputNative, true);
+            static const char* const output_labels[] = {"Native (AA only)", "1920 x 1080", "2560 x 1440",
+                "3840 x 2160 (4K)", "3440 x 1440", "3840 x 1440", "5120 x 1440"};
+            const char* labels[Ps4RtSettings::OutputCount];
+            int values[Ps4RtSettings::OutputCount];
+            int count = 0;
+            for (int o = 0; o < Ps4RtSettings::OutputCount; ++o) {
+                if (!Ps4RtSettings::OutputAllowed(iw, ih, o)) continue;
+                labels[count] = output_labels[o];
+                values[count++] = o;
+            }
+            ChoiceRow("FSR Upscale output", s.output_res, labels, values, count,
+                      "This setting has no effect unless FSR is enabled. Only resolutions larger than "
+                      "the Internal resolution, at its aspect, are offered; Native enables FSR "
+                      "anti-aliasing without upscaling. Applies live.");
         }
         ChoiceRow("Display mode", s.display_mode, Ps4RtGraphics::DisplayModeNames.data(),
                   nullptr, Ps4RtGraphics::DisplayModeCount,
@@ -562,26 +577,6 @@ void CompactGraphics() {
                   s.fsr4_supported ? 3 : 2, upscaler_help.c_str());
         if (provider != s.upscaler)
             Ps4RtSettings::SetSceneUpscaler(provider, false);
-        {
-            // Outputs for the selected internal resolution (same aspect family, larger); Native first.
-            const int r = std::clamp(s.render_resolution.load(), 0, int(G::Resolutions.size()) - 1);
-            const int iw = G::ResolutionWidths[r], ih = G::ResolutionHeights[r];
-            if (!Ps4RtSettings::OutputAllowed(iw, ih, s.output_res)) Store(s.output_res, Ps4RtSettings::OutputNative, true);
-            static const char* const output_labels[] = {"Native (AA only)", "1920 x 1080", "2560 x 1440",
-                "3840 x 2160 (4K)", "3440 x 1440", "3840 x 1440", "5120 x 1440"};
-            const char* labels[Ps4RtSettings::OutputCount];
-            int values[Ps4RtSettings::OutputCount];
-            int count = 0;
-            for (int o = 0; o < Ps4RtSettings::OutputCount; ++o) {
-                if (!Ps4RtSettings::OutputAllowed(iw, ih, o)) continue;
-                labels[count] = output_labels[o];
-                values[count++] = o;
-            }
-            ChoiceRow("FSR Upscale output", s.output_res, labels, values, count,
-                      "This setting has no effect unless FSR is enabled. Only resolutions larger than "
-                      "the Internal resolution, at its aspect, are offered; Native enables FSR "
-                      "anti-aliasing without upscaling. Applies live.");
-        }
         const bool temporal = s.upscaler != Ps4RtSettings::UpscalerOff;
         static const char* const anisotropy_labels[] = {"Game default", "2x", "4x", "8x", "16x"};
         ChoiceRow("Anisotropic filtering", s.anisotropy, anisotropy_labels,
