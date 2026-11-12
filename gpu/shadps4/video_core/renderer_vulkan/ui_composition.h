@@ -4,6 +4,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include "video_core/renderer_vulkan/scene_resolution.h"
 
 namespace Vulkan::UiComposition {
 
@@ -17,9 +18,15 @@ constexpr Background Choose(bool scaled, bool ui_draw, bool scene_ready, bool fs
     return scene_ready && fsr_active ? Background::Temporal : Background::Copy;
 }
 
+// A viewport covering the game's frame (the HUD's display buffer).
 inline bool NativeViewport(float width, float height) {
-    return std::abs(std::abs(width) - 1920.0f) < 0.5f &&
-           std::abs(std::abs(height) - 1080.0f) < 0.5f;
+    return std::abs(std::abs(width) - float(SceneResolution::game_frame.width)) < 0.5f &&
+           std::abs(std::abs(height) - float(SceneResolution::game_frame.height)) < 0.5f;
+}
+// A viewport covering the 3D scene (the same as the frame unless manual engine options differ).
+inline bool SceneViewport(float width, float height) {
+    return std::abs(std::abs(width) - float(SceneResolution::game_scene.width)) < 0.5f &&
+           std::abs(std::abs(height) - float(SceneResolution::game_scene.height)) < 0.5f;
 }
 
 // Scaleform draws, including the first stencil/movie pass. A native-size viewport
@@ -32,8 +39,8 @@ constexpr bool MovieShader(uint64_t hash) {
 inline std::array<float, 2> Scale(uint32_t guest_width, uint32_t guest_height,
                                 uint32_t output_width, uint32_t output_height,
                                 bool native_coordinates) {
-    return {float(output_width) / float(native_coordinates ? 1920 : guest_width),
-            float(output_height) / float(native_coordinates ? 1080 : guest_height)};
+    return {float(output_width) / float(native_coordinates ? SceneResolution::game_frame.width : guest_width),
+            float(output_height) / float(native_coordinates ? SceneResolution::game_frame.height : guest_height)};
 }
 
 // Native UI shaders address guest-size masks with FragCoord. The display pass
@@ -41,7 +48,7 @@ inline std::array<float, 2> Scale(uint32_t guest_width, uint32_t guest_height,
 // its unscaled FragCoord even though its attachment is redirected too.
 constexpr uint32_t FragmentSize(bool native_ui, uint32_t guest_width, uint32_t guest_height,
                                 uint32_t output_width, uint32_t output_height) {
-    return native_ui && guest_width == 1920 && guest_height == 1080
+    return native_ui && SceneResolution::IsGameFrame(guest_width, guest_height)
                ? output_width | (output_height << 16) : 0;
 }
 

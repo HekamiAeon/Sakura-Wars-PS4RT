@@ -2,6 +2,7 @@
 #include "video_core/renderer_vulkan/vk_camera_motion.h"
 #include "video_core/renderer_vulkan/ps4rt_camera.h"
 #include "video_core/renderer_vulkan/sakura_scene.h"
+#include "video_core/renderer_vulkan/scene_resolution.h"
 
 #include <cmath>
 #include <cstdio>
@@ -240,10 +241,12 @@ void CameraMotion::OnSakuraView(const float* data, u64 bytes) {
     current.depth_transform = {1.f, 0.f, 0.f};
     current.valid = true;
     frame_has_camera = true;
-    if (render_size[0] != 1920 || render_size[1] != 1080) {
-        render_size = {1920, 1080};
-        std::printf("PS4RT: Sakura scene camera 1920x1080, reversed depth, near %.3f far %.1f\n",
-                    Near(), Far());
+    // The scene size this run (the Internal resolution; the game's own is 1920x1080).
+    const std::array<u32, 2> scene{SceneResolution::game_scene.width, SceneResolution::game_scene.height};
+    if (render_size != scene) {
+        render_size = scene;
+        std::printf("PS4RT: Sakura scene camera %ux%u, reversed depth, near %.3f far %.1f\n",
+                    scene[0], scene[1], Near(), Far());
     }
 }
 

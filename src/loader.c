@@ -479,6 +479,24 @@ void runtime_restart(void) {
 /* The guest code needs the PS4's instruction sets (#33, #66); PS4RT_CPU_CHECK=0 skips this. A
  * missing fatal set prints STOP and returns 0; the rewritable ones go to cpu_missing_sets, named
  * in missing. */
+/* The menu's Internal resolution: PS4RT_INTERNAL_RES=<w>x<h> (scripts/ps4rt_launch.py, from
+ * ps4rt.ini render_resolution); unset for the game's own 1920x1080. */
+static int internal_resolution(unsigned *w, unsigned *h) {
+    const char *text=getenv("PS4RT_INTERNAL_RES");
+    unsigned a=0, b=0; char x=0;
+    if (!text || sscanf(text,"%u%c%u",&a,&x,&b)!=3 || (x!='x' && x!='X') ||
+        a<640 || a>8192 || b<360 || b>8192) return 0;
+    *w=a; *h=b;
+    return 1;
+}
+
+/* A resolution other than the game's own: the Internal resolution, or explicit engine options
+ * in PS4RT_GUEST_ARGS with PS4RT_EXPERIMENT_RT_GROWTH (testing). */
+static int resolution_mode(void) {
+    unsigned w, h;
+    return internal_resolution(&w,&h) || getenv("PS4RT_EXPERIMENT_RT_GROWTH")!=NULL;
+}
+
 static int cpu_supported(char *missing, size_t size) {
     missing[0] = 0;
     const char *check = getenv("PS4RT_CPU_CHECK");
@@ -863,20 +881,21 @@ int main(int argc, char **argv) {
             memcpy(t2+1,&rel,4);
         }
         printf("GPU: CPU texture tile 2D 0x%" PRIx64 " %s\n",tile2d_site,tile2d_ok?"routed to the buffer cache":"NOT MATCHED");
-        if (!getenv("PS4RT_EXPERIMENT_RT_GROWTH")) protect(image+round_page(size)+stub_area,page_size,5);
+        if (!resolution_mode()) protect(image+round_page(size)+stub_area,page_size,5);
     }
-    if (getenv("PS4RT_EXPERIMENT_RT_GROWTH")) {
-        /* The render size (the engine's own --renderres or --res arguments). */
+    if (resolution_mode()) {
+        /* The render size: the Internal resolution, else the engine's own --renderres or --res
+         * arguments. */
         unsigned rw=0, rh=0;
         const char *ga=getenv("PS4RT_GUEST_ARGS");
-        if (ga) {
+        if (!internal_resolution(&rw,&rh) && ga) {
             const char *q;
             if ((q=strstr(ga,"--renderres_x="))) rw=(unsigned)strtoul(q+14,NULL,10);
             else if ((q=strstr(ga,"--res_x="))) rw=(unsigned)strtoul(q+8,NULL,10);
             if ((q=strstr(ga,"--renderres_y="))) rh=(unsigned)strtoul(q+14,NULL,10);
             else if ((q=strstr(ga,"--res_y="))) rh=(unsigned)strtoul(q+8,NULL,10);
         }
-        /* UW experiment. World-anchored UI (NPC "..." bubbles, the Talk prompt) projects its
+        /* World-anchored UI (NPC "..." bubbles, the Talk prompt) projects its
          * anchor with the authored 1920-wide UI size, so at 21:9 it lands at 0.75x the head's
          * offset. Each site's 5-byte width load becomes a call to a stub that loads
          * max(width, height * viewport aspect) from the same camera, capped at 4x: unchanged at 16:9. */
@@ -899,7 +918,7 @@ int main(int argc, char **argv) {
                 p[0]=0xe8; memcpy(p+1,&rel,4);
                 at+=(anchors[a].len+15)&~(size_t)15;
             }
-            printf("UW experiment: %s anchor 0x%" PRIx64 " %s\n",anchors[a].name,anchors[a].site,ok?"widened":"NOT MATCHED");
+            printf("Resolution: %s anchor 0x%" PRIx64 " %s\n",anchors[a].name,anchors[a].site,ok?"widened":"NOT MATCHED");
         }
         /* More world-anchored UI with the same 1920-wide projection, all loading the UI size as
          * `vmovs(s|d) xmmD,[B+0x34]` (width, or width and height) from the same screen object.
@@ -937,7 +956,7 @@ int main(int argc, char **argv) {
                     p[0]=0xe9; memcpy(p+1,&to,4);
                     at+=((size_t)(q-st)+15)&~(size_t)15;
                 }
-                printf("UW experiment: %s anchor 0x%" PRIx64 " %s\n",wide_ui[a].name,wide_ui[a].site,ok?"widened":"NOT MATCHED");
+                printf("Resolution: %s anchor 0x%" PRIx64 " %s\n",wide_ui[a].name,wide_ui[a].site,ok?"widened":"NOT MATCHED");
             }
         }
         protect(uw_stubs,page_size,5);
@@ -949,7 +968,7 @@ int main(int argc, char **argv) {
             int32_t rel; memcpy(&rel,p-4,4);
             int ok=p[0]==0xcd && p[1]==0x41 && p[-5]==0xe8 && sites[s]+rel==0xf95a80;
             if (ok) { p[0]=0x66; p[1]=0x90; }
-            printf("UW experiment: alert trap 0x%" PRIx64 " %s\n",sites[s],ok?"skipped":"NOT MATCHED");
+            printf("Resolution: alert trap 0x%" PRIx64 " %s\n",sites[s],ok?"skipped":"NOT MATCHED");
         }
         /* The render target pool starts at a fixed 400 MiB (580 MiB when sceKernelIsNeoMode),
          * enough for every 16:9 scene. A wider render outgrows it on the first field load, and
@@ -971,7 +990,7 @@ int main(int argc, char **argv) {
                     unsigned char *p=image+aspect_sites[c];
                     int ok=aspect_sites[c]+4<=size && !memcmp(p,&wide,4);
                     if (ok) memcpy(p,&aspect,4);
-                    printf("UW experiment: camera aspect 0x%" PRIx64 " %s (%.4f)\n",aspect_sites[c],
+                    printf("Resolution: camera aspect 0x%" PRIx64 " %s (%.4f)\n",aspect_sites[c],
                            ok?"set":"NOT MATCHED",aspect);
                 }
             }
@@ -983,7 +1002,7 @@ int main(int argc, char **argv) {
             unsigned char *p=image+0x1530ee;
             int ok=0x1530ee + sizeof(expect)<=size &&!memcmp(p,expect,sizeof(expect));
             if (ok) { memcpy(p+3,&pool,4); memcpy(p+8,&pool,4); }
-            printf("UW experiment: render target pool %u MiB for %ux%u %s\n",pool>>20,rw,rh,ok?"set":"NOT MATCHED");
+            printf("Resolution: render target pool %u MiB for %ux%u %s\n",pool>>20,rw,rh,ok?"set":"NOT MATCHED");
             /* The pool lives in the game's GPU ("garlic") heap, a fixed 0x80000000 + 0x58700000
              * (3463 MiB; +512 MiB when sceKernelIsNeoMode). Grow it by the pool's growth plus a
              * generous 1 GiB for the larger textures and surfaces of the higher resolution, and
@@ -1006,7 +1025,7 @@ int main(int argc, char **argv) {
                         setenv("PS4RT_DMEM_MB",text,1);
                     }
                 }
-                printf("UW experiment: GPU heap %" PRIu64 " MiB, direct memory %s MiB %s\n",garlic>>20,
+                printf("Resolution: GPU heap %" PRIu64 " MiB, direct memory %s MiB %s\n",garlic>>20,
                        getenv("PS4RT_DMEM_MB")?getenv("PS4RT_DMEM_MB"):"5056",hok?"set":"NOT MATCHED");
             }
         }
@@ -1056,6 +1075,25 @@ int main(int argc, char **argv) {
             params.argv[params.argc++]=arg;
         }
         params.argv[params.argc]=NULL;
+    }
+    /* The Internal resolution through the engine's own options: --renderres is the 3D scene,
+     * --res the display buffer the HUD and 2D screens are drawn in, both the same size. A
+     * smaller scene than display is not scaled by the engine: it composes the scene 1:1 into
+     * the top-left corner of the display (tested at 1280x720 in 1920x1080). Explicit options
+     * in PS4RT_GUEST_ARGS win. */
+    unsigned iw, ih;
+    if (internal_resolution(&iw,&ih) && !(guest_args && strstr(guest_args,"--res")) &&
+        params.argc+4<=MAX_GUEST_ARGS+1) {
+        static char options[4][32];
+        const unsigned dw=iw, dh=ih;
+        snprintf(options[0],sizeof(options[0]),"--res_x=%u",dw);
+        snprintf(options[1],sizeof(options[1]),"--res_y=%u",dh);
+        snprintf(options[2],sizeof(options[2]),"--renderres_x=%u",iw);
+        snprintf(options[3],sizeof(options[3]),"--renderres_y=%u",ih);
+        for (int o=0;o<4;++o) params.argv[params.argc++]=options[o];
+        params.argv[params.argc]=NULL;
+    }
+    if (params.argc>1) {
         printf("Runtime: game arguments:");
         for (uint64_t a=1;a<params.argc;++a) printf(" %s",params.argv[a]);
         putchar('\n');

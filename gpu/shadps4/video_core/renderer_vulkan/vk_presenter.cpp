@@ -1041,11 +1041,15 @@ void Presenter::SetExpectedGameSize(s32 width, s32 height) {
     const float ratio = expected_ratio;
     s32 frame_width, frame_height;
     if (graphics.CompactGraphicsMenu()) {
-        const int output = std::clamp(graphics.output_res.load(),0,Ps4RtSettings::OutputCount-1);
-        frame_width = Ps4RtSettings::OutputWidths[output];
-        frame_height = Ps4RtSettings::OutputHeights[output];
-        // The listed sizes are 16:9. A wider game frame (the experimental ultrawide modes)
-        // keeps its own aspect at the selected height instead of being squeezed into 16:9.
+        // FSR on: its output (the HUD is drawn at that size too). Off: the game's own display
+        // buffer at its size; the window fits it, nothing is enlarged here (Code Fairy port).
+        int w = 0, h = 0;
+        if (graphics.upscaler != Ps4RtSettings::UpscalerOff) Ps4RtSettings::FsrOutputSize(w, h);
+        else Ps4RtSettings::GameDisplaySize(w, h);
+        frame_width = w;
+        frame_height = h;
+        // Never squeeze a wider game image into the frame (a manual run whose engine options
+        // the settings cannot see): keep its aspect at the frame's height.
         if (ratio > float(frame_width) / float(frame_height) + 0.01f) {
             frame_width = s32(std::lround(frame_height * ratio)) & ~1;
         }

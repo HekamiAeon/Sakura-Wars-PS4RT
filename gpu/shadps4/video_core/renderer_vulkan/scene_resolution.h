@@ -17,6 +17,17 @@ inline Size ForPreset(int preset, Size output = {}) {
     return {uint32_t(std::max(1l, std::lround(output.width / scale / 2)) * 2),
             uint32_t(std::max(1l, std::lround(output.height / scale / 2)) * 2)};
 }
+/// The game's own sizes this run: the 3D scene (the engine's --renderres) and the frame the HUD,
+/// dialogue and 2D screens draw in (its --res, the display buffer). 1920x1080 at the game's own
+/// resolution; the renderer sets both once at start from the menu's Internal resolution
+/// (Ps4RtSettings::SceneSize, GameDisplaySize). They differ only with manual engine options.
+inline Size game_scene{}, game_frame{};
+inline bool IsGameScene(uint32_t width, uint32_t height) {
+    return width == game_scene.width && height == game_scene.height;
+}
+inline bool IsGameFrame(uint32_t width, uint32_t height) {
+    return width == game_frame.width && height == game_frame.height;
+}
 constexpr uint32_t Pack(Size size) { return size.width | (size.height << 16); }
 constexpr Size Unpack(uint32_t packed) {
     return packed ? Size{packed & 65535u, packed >> 16} : Size{};

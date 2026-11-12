@@ -39,6 +39,32 @@ CONSOLE_LANGUAGES = (
 DEFAULT_CONSOLE_LANGUAGE = 1  # English (US): what this port always reported before the option
 MAX_SYSTEM_LANGUAGE = 30
 
+# Internal render resolutions saved by the in-game menu (gpu/shim/ps4rt_graphics.h Resolutions,
+# applied on restart). 'native' is the game's own 1920x1080 and sets nothing; for the others the
+# loader (src/loader.c) gives the engine its own --res/--renderres options and sizes the render
+# target pool, GPU heap and direct memory. Wider than 16:9 is experimental.
+RENDER_RESOLUTIONS = {
+    '720p': '1280x720', '540p': '1024x576', '1440p': '2560x1440', '2160p': '3840x2160',
+    '2560x1080': '2560x1080', '3440x1440': '3440x1440', '3840x1440': '3840x1440',
+    '3840x1080': '3840x1080', '5120x1440': '5120x1440',
+}
+
+
+def _internal_resolution(ini: Path, env: dict) -> None:
+    """PS4RT_INTERNAL_RES from the ini's render_resolution; an explicit caller value wins.
+
+    A value this launcher took from the ini on an earlier launch (inherited through "Apply and
+    restart") is not the caller's: drop it so the newly saved choice applies.
+    """
+    if env.pop('PS4RT_INTERNAL_RES_FROM_INI', None):
+        env.pop('PS4RT_INTERNAL_RES', None)
+    if 'PS4RT_INTERNAL_RES' in env:
+        return
+    size = RENDER_RESOLUTIONS.get((_ini_value(ini, 'render_resolution') or '').lower())
+    if size:
+        env['PS4RT_INTERNAL_RES'] = size
+        env['PS4RT_INTERNAL_RES_FROM_INI'] = '1'
+
 
 def _language_id(text) -> int | None:
     """A PS4 system language ID, or None for anything else."""
@@ -376,6 +402,7 @@ def main(argv=None) -> int:
     # Before the trophy catalog: trophy text follows the console language.
     _console_language(user_dir, out / 'ps4rt.ini', env)
     _achievements(title_id, game, user_dir, env)
+    _internal_resolution(out / 'ps4rt.ini', env)
     if args.upscaler is not None:
         env['PS4RT_UPSCALER'] = args.upscaler
     if args.output_resolution is not None:

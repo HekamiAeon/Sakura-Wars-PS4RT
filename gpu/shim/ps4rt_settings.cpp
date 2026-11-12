@@ -3,11 +3,13 @@
 #include "ps4rt_graphics.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace Ps4RtSettings {
 
@@ -129,7 +131,8 @@ void Set(Values& v, const std::string& key, const std::string& value) {
     } else if (key == "live_resolution") {
         v.live_resolution = value == "auto" ? -1 : std::clamp(i, 0, 1);
     } else if (key == "output_res") {
-        for (int r = 0; r < OutputCount; ++r) {
+        if (value == "native") v.output_res = OutputNative;
+        for (int r = 1; r < OutputCount; ++r) {
             if (value == std::to_string(OutputWidths[r]) + "x" + std::to_string(OutputHeights[r])) {
                 v.output_res = r;
             }
@@ -198,7 +201,14 @@ void Load() {
         // This title keeps native guest targets. Never import another game's
         // resolution, camera layout, object-motion signatures or jitter policy.
         if (const char* output = std::getenv("PS4RT_OUTPUT_RES")) Set(v, "output_res", output);
-        v.output_res = std::clamp(v.output_res.load(), 1, OutputCount - 1);
+        // Older ini files: 1920x1080 (the old default) and other choices that do not fit the
+        // selected internal resolution become Native; fitting ones are kept.
+        {
+            const int r = std::clamp(v.render_resolution.load(), 0, int(Ps4RtGraphics::Resolutions.size()) - 1);
+            v.output_res = std::clamp(v.output_res.load(), 0, OutputCount - 1);
+            if (!OutputAllowed(Ps4RtGraphics::ResolutionWidths[r], Ps4RtGraphics::ResolutionHeights[r], v.output_res))
+                v.output_res = OutputNative;
+        }
         v.preset = NativeAA;
         SetSceneUpscaler(v.upscaler, false);
         v.temporal_problem = "FSR is waiting for a 3D scene; original rendering is active.";
@@ -321,7 +331,8 @@ void Save() {
                  v.reactive_scale.load(), v.reactive_threshold.load(), v.reactive_max.load(),
                  v.debug_view.load(), int(v.show_fps.load()),
                  int(v.fsr4_auto_exposure.load()), int(v.fsr4_invert_jitter.load()));
-    std::fprintf(file, "output_res=%dx%d\n", OutputWidths[v.output_res], OutputHeights[v.output_res]);
+    if (v.output_res == OutputNative) std::fprintf(file, "output_res=native\n");
+    else std::fprintf(file, "output_res=%dx%d\n", OutputWidths[v.output_res], OutputHeights[v.output_res]);
     std::fprintf(file,
                  "overlay_fps=%d\noverlay_frametime=%d\noverlay_upscaler=%d\noverlay_gpu=%d\n"
                  "overlay_cpu=%d\noverlay_ram=%d\noverlay_vram=%d\noverlay_scale=%d\noverlay_corner=%d\n"
@@ -338,7 +349,7 @@ void Save() {
                  Ps4RtGraphics::DisplayModeKeys[std::clamp(v.display_mode.load(), 0, 2)].data(),
                  int(v.vsync.load()), v.fps_limit.load(), int(v.async_shaders.load()),
                  int(v.fsr1.load()), int(v.rcas.load()), v.rcas_strength.load(), v.frames_queued.load(),
-                 Ps4RtGraphics::Resolutions[std::clamp(v.render_resolution.load(), 0, 5)].data(),
+                 Ps4RtGraphics::Resolutions[std::clamp(v.render_resolution.load(), 0, int(Ps4RtGraphics::Resolutions.size()) - 1)].data(),
                  v.engine_fps.load(), int(v.deferred_readback.load()), int(v.stale_readback.load()),
                  int(v.restart_unconfirmed.load()));
     std::fprintf(file, "anisotropy=%d\nvibration=%d\n", v.anisotropy.load(), v.vibration.load());
@@ -359,6 +370,78 @@ void Save() {
 float PresetScale(int preset) {
     static constexpr float scales[PresetCount] = {1.0f, 1.5f, 1.7f, 2.0f, 3.0f};
     return scales[std::clamp(preset, 0, PresetCount - 1)];
+}
+
+bool OutputAllowed(int iw, int ih, int output) {
+    if (output == OutputNative) return true;
+    if (output < 0 || output >= OutputCount || iw <= 0 || ih <= 0) return false;
+    const int ow = OutputWidths[output], oh = OutputHeights[output];
+    const double in = double(iw) / ih, out = double(ow) / oh;
+    return ow > iw && oh > ih && std::abs(out - in) <= 0.01 * in;
+}
+
+namespace {
+
+// "WxH" in a sane range, else false.
+bool ParseSize(const char* text, int& width, int& height) {
+    unsigned w = 0, h = 0;
+    if (!text || std::sscanf(text, "%ux%u", &w, &h) != 2 || w < 640 || w > 8192 || h < 360 || h > 8192)
+        return false;
+    width = int(w);
+    height = int(h);
+    return true;
+}
+
+// An engine option ("--renderres_x=2560") in PS4RT_GUEST_ARGS, else 0.
+int GuestArg(const char* name) {
+    const char* args = std::getenv("PS4RT_GUEST_ARGS");
+    const char* at = args ? std::strstr(args, name) : nullptr;
+    return at ? std::atoi(at + std::strlen(name)) : 0;
+}
+
+} // namespace
+
+void SceneSize(int& width, int& height) {
+    // The environment is fixed for a run; the presenter asks every frame.
+    static const std::pair<int, int> size = [] {
+        int w = 1920, h = 1080;
+        if (!ParseSize(std::getenv("PS4RT_INTERNAL_RES"), w, h)) {
+            // Manual runs that pass the engine options directly.
+            const int gw = GuestArg("--renderres_x=") ? GuestArg("--renderres_x=") : GuestArg("--res_x=");
+            const int gh = GuestArg("--renderres_y=") ? GuestArg("--renderres_y=") : GuestArg("--res_y=");
+            if (gw >= 640 && gw <= 8192 && gh >= 360 && gh <= 8192) w = gw, h = gh;
+        }
+        return std::pair<int, int>{w, h};
+    }();
+    width = size.first;
+    height = size.second;
+}
+
+void GameDisplaySize(int& width, int& height) {
+    static const std::pair<int, int> size = [] {
+        int w = 1920, h = 1080;
+        // The Internal resolution: src/loader.c gives the engine the same --res as --renderres.
+        if (!ParseSize(std::getenv("PS4RT_INTERNAL_RES"), w, h)) {
+            const int gw = GuestArg("--res_x="), gh = GuestArg("--res_y=");
+            if (gw >= 640 && gw <= 8192 && gh >= 360 && gh <= 8192) w = gw, h = gh;
+        }
+        return std::pair<int, int>{w, h};
+    }();
+    width = size.first;
+    height = size.second;
+}
+
+void FsrOutputSize(int& width, int& height) {
+    int w, h;
+    SceneSize(w, h);
+    width = w;
+    height = h;
+    const int output = Get().output_res;
+    if (output == OutputNative || !OutputAllowed(w, h, output)) return;
+    // Fit inside the chosen size at the scene's aspect: 2560x1080 -> 3414x1440 (thin bars).
+    const double s = std::min(double(OutputWidths[output]) / w, double(OutputHeights[output]) / h);
+    width = std::min(OutputWidths[output], (int(w * s + 0.5) + 1) & ~1);
+    height = std::min(OutputHeights[output], (int(h * s + 0.5) + 1) & ~1);
 }
 
 const char* PresetName(int preset) {

@@ -34,8 +34,8 @@ class OverlayLanguageTests(unittest.TestCase):
         """The new row is appended; existing controls keep their positions and focus."""
         body = function_body(self.source, "void CompactGraphics()")
         order = [body.index(label) for label in (
-            '"Output resolution"', '"Display mode"', '"Upscaling / anti-aliasing"',
-            '"Anisotropic filtering"', '"Outlines"', '"Sharpening"', "LanguageRow();")]
+            '"Internal resolution"', '"Display mode"', '"Upscaling / anti-aliasing"',
+            '"FSR Upscale output"', '"Anisotropic filtering"', '"Outlines"', '"Sharpening"', "LanguageRow();")]
         self.assertEqual(order, sorted(order))
 
     def test_language_change_is_a_restart_change(self):

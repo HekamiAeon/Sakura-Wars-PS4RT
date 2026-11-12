@@ -20,11 +20,26 @@ inline bool IsFsr4(int upscaler) {
 enum Preset : int { NativeAA = 0, Quality, Balanced, Performance, UltraPerformance, PresetCount };
 enum DebugView : int { DebugNone = 0, DebugReactive = 1, DebugMotion = 2, DebugViewCount };
 
-/// Live output resolutions: the upscaler's output and the UI host targets.
-inline constexpr int OutputWidths[] = {1280, 1920, 2560, 3840};
-inline constexpr int OutputHeights[] = {720, 1080, 1440, 2160};
-inline constexpr int OutputCount = 4;
-inline constexpr int OutputDefault = 1; ///< 1920x1080, the game's own size
+/// FSR output resolutions (live): the upscaler's output and the HUD's host targets (the Code
+/// Fairy port's list). 0 is Native (FSR anti-aliasing at the internal resolution).
+inline constexpr int OutputWidths[] = {0, 1920, 2560, 3840, 3440, 3840, 5120};
+inline constexpr int OutputHeights[] = {0, 1080, 1440, 2160, 1440, 1440, 1440};
+inline constexpr int OutputCount = 7;
+inline constexpr int OutputNative = 0;
+inline constexpr int OutputDefault = OutputNative;
+
+/// An output can be chosen for an internal resolution when it is larger in both dimensions and
+/// has the same aspect within 1% (2560x1080 -> 3440x1440 is the only inexact pair). Native always.
+bool OutputAllowed(int internal_width, int internal_height, int output);
+/// The scene size this launch renders at: PS4RT_INTERNAL_RES (the launcher, from the menu's
+/// Internal resolution), else the engine options in PS4RT_GUEST_ARGS, else 1920x1080.
+void SceneSize(int& width, int& height);
+/// The game's display buffer size this launch (the engine's --res): the scene size for the
+/// Internal resolution (src/loader.c), else the engine options in PS4RT_GUEST_ARGS.
+void GameDisplaySize(int& width, int& height);
+/// The FSR output (live): output_res fitted to the scene aspect (never stretched),
+/// or the scene size for Native or a choice that does not fit this internal resolution.
+void FsrOutputSize(int& width, int& height);
 
 struct Values {
     // Native-scene path inherited from the template runtime; intentionally game-adaptable.
