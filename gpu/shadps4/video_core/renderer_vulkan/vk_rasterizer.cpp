@@ -9,6 +9,7 @@
 #include "video_core/renderer_vulkan/ui_composition.h"
 #include "video_core/renderer_vulkan/ps4rt_camera.h"
 #include "ps4rt_toggles.h"
+#include "ps4rt_effects.h"
 #include "ps4rt_gpu_workarounds.h"
 #include "ps4rt_settings.h"
 #include "video_core/texture_cache/ps4rt_transition.h"
@@ -1188,6 +1189,13 @@ void Rasterizer::DrawRecord(const GraphicsPipeline* pipeline, const PreparedDraw
     const bool inputs_resolved = draw_inputs.resolved;
     draw_inputs.pending = false;
     if (!bound) {
+        return;
+    }
+    // ps4rt: graphics preset Lowest with an upscaler keeps the game's outlines pass for the
+    // upscaler's inputs (PostEdge's scene colour, depth and camera, taken above); its composite
+    // is left out, the picture Lowest gives without one (ps4rt_effects.h).
+    if (Ps4RtEffects::OutlinePassHidden() && pipeline->GetStages()[u32(Shader::SwStage::Fragment)] &&
+        pipeline->GetStage(Shader::SwStage::Fragment).pgm_hash == SakuraScene::PostEdgeFs) {
         return;
     }
     PrepareMovieBox(pipeline);

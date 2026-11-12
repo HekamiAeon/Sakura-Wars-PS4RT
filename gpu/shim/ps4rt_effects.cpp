@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdio>
 #include <cstring>
 #ifndef _WIN32
@@ -68,14 +69,16 @@ bool WriteSlot(std::uint8_t* image, std::uint64_t value) {
 }
 } // namespace
 
-std::uint64_t PresetBytes(int preset) {
+std::uint64_t PresetBytes(int preset, bool upscaler) {
     // bloom, occlusionCapsule, antialiasing type, edge, dof, dof rtScale, character screen-space
     // shadow, unused (low byte first); 0xff keeps the game's.
     switch (preset) {
     case High: return 0xffffffffffff0000;   // contact shadows and bloom off
     case Medium: return 0xff0002ffff020000; // and FXAA, depth of field at quarter resolution,
                                             // no character screen-space shadow
-    case Lowest: return 0xff00ff0000000000; // and no anti-aliasing, outlines and depth of field
+    case Lowest:                            // and no anti-aliasing, outlines and depth of field
+        // With an upscaler the game's edge switch stays: the rasterizer drops the composite.
+        return upscaler ? 0xff00ff00ff000000 : 0xff00ff0000000000;
     default: return ~std::uint64_t{0};
     }
 }
@@ -92,7 +95,7 @@ Hook HookState(const std::uint8_t* image) {
     return Hook::Unknown;
 }
 
-bool SetPreset(std::uint8_t* image, int preset) {
+bool SetPreset(std::uint8_t* image, int preset, bool upscaler) {
     const Hook state = HookState(image);
     if (state == Hook::Unknown || preset < Max || preset > Lowest) return false;
     const auto base = reinterpret_cast<std::uint64_t>(image);
@@ -102,12 +105,20 @@ bool SetPreset(std::uint8_t* image, int preset) {
     if (!Protect(cave_page, PROT_READ | PROT_WRITE | PROT_EXEC)) return false;
     if (std::memcmp(image + Cave + Entry, Routine.data(), Routine.size()) != 0)
         std::memcpy(image + Cave + Entry, Routine.data(), Routine.size());
-    __atomic_store_n(reinterpret_cast<std::uint64_t*>(image + Cave), PresetBytes(preset),
+    __atomic_store_n(reinterpret_cast<std::uint64_t*>(image + Cave), PresetBytes(preset, upscaler),
                      __ATOMIC_SEQ_CST);
     Protect(cave_page, PROT_READ | PROT_EXEC);
     return state == Hook::Patched || WriteSlot(image, base + Cave + Entry);
 }
 } // namespace Sakura
+
+namespace {
+std::atomic<bool> outline_pass_hidden{false};
+} // namespace
+
+bool OutlinePassHidden() {
+    return outline_pass_hidden.load(std::memory_order_relaxed);
+}
 
 void OnFlip(std::uintptr_t image_base, std::uintptr_t image_size) {
     auto& s = Ps4RtSettings::Get();
@@ -122,12 +133,19 @@ void OnFlip(std::uintptr_t image_base, std::uintptr_t image_size) {
     }();
     if (!sakura) return;
     static int applied = Max;
+    static bool applied_upscaler = false;
     const int want = std::clamp(s.graphics_preset.load(), int(Max), int(Lowest));
-    if (want == applied) return;
+    // Only Lowest's bytes depend on the upscaler (the edge switch kept for its inputs).
+    const bool upscaler = want == Lowest && s.upscaler.load() != Ps4RtSettings::UpscalerOff;
+    if (want == applied && upscaler == applied_upscaler) return;
     applied = want;
+    applied_upscaler = upscaler;
     static const char* const names[] = {"Max", "High", "Medium", "Lowest"};
-    if (Sakura::SetPreset(reinterpret_cast<std::uint8_t*>(image_base), want))
-        std::printf("Effects: graphics preset %s\n", names[want]);
+    const bool ok = Sakura::SetPreset(reinterpret_cast<std::uint8_t*>(image_base), want, upscaler);
+    outline_pass_hidden.store(ok && want == Lowest, std::memory_order_relaxed);
+    if (ok)
+        std::printf("Effects: graphics preset %s%s\n", names[want],
+                    upscaler ? " (outlines pass kept for the upscaler, its composite hidden)" : "");
     else
         std::printf("Effects: graphics preset not applied (unexpected code bytes)\n");
 }

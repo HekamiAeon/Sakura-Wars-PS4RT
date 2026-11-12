@@ -32,6 +32,10 @@ enum Preset { Max = 0, High = 1, Medium = 2, Lowest = 3 };
 /// character screen-space shadow (pixel shader 9f8dc46c, depth and G-buffer to an R32Uint mask,
 /// two filter passes, composited) costs 6 to 13 ms; off +3 to 5 fps, no visible change there.
 /// The light field (+0x610) is left alone: off turns foliage black for no gain.
+/// Lowest with an upscaler (FSR, TAA, DLSS) keeps the game's edge switch: the outlines pass's
+/// composite (PostEdge, sakura_scene.h) is where the upscaler takes the scene colour, depth and
+/// camera, and without it FSR never runs. The rasterizer leaves out that draw instead
+/// (OutlinePassHidden), so the picture is Lowest's either way.
 namespace Sakura {
 inline constexpr std::uintptr_t Slot = 0x183a868;
 inline constexpr std::uintptr_t Apply = 0xdad540;
@@ -39,18 +43,22 @@ inline constexpr std::uintptr_t Apply = 0xdad540;
 /// from 0x142272c).
 inline constexpr std::uintptr_t Cave = 0x1422c00;
 inline constexpr std::uintptr_t CaveSize = 0x200; ///< up to MotionCave
-/// The override bytes of a preset, as stored at Cave.
-std::uint64_t PresetBytes(int preset);
+/// The override bytes of a preset, as stored at Cave; `upscaler`: an upscaler is selected.
+std::uint64_t PresetBytes(int preset, bool upscaler = false);
 enum class Hook { Original, Patched, Unknown };
 Hook HookState(const std::uint8_t* image);
 /// Applies `preset`: Max restores the slot; the others write the routine (once) and the preset
 /// bytes, then point the slot at the routine. False (nothing written) when the bytes are not the
 /// expected ones.
-bool SetPreset(std::uint8_t* image, int preset);
+bool SetPreset(std::uint8_t* image, int preset, bool upscaler = false);
 } // namespace Sakura
 
+/// True while Lowest is applied: the rasterizer leaves out the outlines pass's composite draw
+/// (still issued by the game when an upscaler is selected, for the upscaler's inputs).
+bool OutlinePassHidden();
+
 /// Per flip, on the game's thread: detects the hook once (enables the menu option) and applies a
-/// changed setting.
+/// changed setting (the preset, or for Lowest the upscaler being selected or not).
 void OnFlip(std::uintptr_t image_base, std::uintptr_t image_size);
 
 } // namespace Ps4RtEffects
