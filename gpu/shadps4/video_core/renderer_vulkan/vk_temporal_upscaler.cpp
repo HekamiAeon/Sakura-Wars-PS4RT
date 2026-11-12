@@ -1176,7 +1176,7 @@ void TemporalUpscaler::Run() {
         dispatched = true;
     } else if (UseFsr4()) {
         dispatched = RecordFsr4(cmdbuf, {input_color, input_color_view, w, h},
-                                {input_depth, input_depth_view, w, h}, w, h, ow, oh, frame_ms);
+                                {input_depth, input_depth_view, w, h}, w, h, ow, oh, frame_ms, true);
     } else if (UseDlss()) {
         dispatched = RecordDlss(
             cmdbuf,
@@ -1784,9 +1784,12 @@ void TemporalUpscaler::RunScaled() {
                               source_width, source_height},
                              w, h, ow, oh, frame_ms, false);
         } else {
+            // The game's tonemapped frame is display-range input, as FSR 3's context is made
+            // for it. Read as HDR with auto exposure, FSR 4's exposure followed the view and the
+            // image pulsed brighter and dimmer while running past bright lighting (CUSA16429).
             ok4 = RecordFsr4(cmdbuf, {color_image, color_view, source_width, source_height},
                             {depth_image, depth_view, source_width, source_height}, w, h, ow,
-                            oh, frame_ms);
+                            oh, frame_ms, false);
         }
         if (ok4) {
             if (Ps4RtSettings::Get().upscaler != Ps4RtSettings::UpscalerTaa) {
@@ -2313,7 +2316,7 @@ bool TemporalUpscaler::UseFsr4() const {
 
 bool TemporalUpscaler::RecordFsr4(vk::CommandBuffer cmdbuf, Fsr4Upscaler::Image color,
                                   Fsr4Upscaler::Image depth, u32 w, u32 h, u32 ow, u32 oh,
-                                  float frame_ms) {
+                                  float frame_ms, bool hdr) {
     const auto& settings = Ps4RtSettings::Get();
     // Same jitter convention as FSR 3; the menu (or toggle 1 << 26) flips it for tests.
     const float sign =
@@ -2338,6 +2341,7 @@ bool TemporalUpscaler::RecordFsr4(vk::CommandBuffer cmdbuf, Fsr4Upscaler::Image 
         .reset = reset,
         .auto_exposure = settings.fsr4_auto_exposure,
         .depth_inverted = camera_motion.DepthInverted(),
+        .hdr = hdr,
     });
     // The menu shows the reason; it outlives this frame (FSR 4 keeps its last message).
     static std::string shown;

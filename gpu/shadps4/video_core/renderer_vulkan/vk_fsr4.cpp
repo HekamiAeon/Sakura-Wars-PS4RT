@@ -64,6 +64,7 @@ struct Fsr4Upscaler::Impl {
     ffxContext context{};
     bool context_ok = false;
     bool depth_inverted = false;
+    bool hdr_input = true;
     int model = -1;
     u32 out_width = 0, out_height = 0;
     std::string problem;
@@ -114,7 +115,7 @@ struct Fsr4Upscaler::Impl {
         fatal |= permanent;
     }
 
-    bool CreateBackend(int preset, u32 ow, u32 oh, bool inverted) {
+    bool CreateBackend(int preset, u32 ow, u32 oh, bool inverted, bool hdr) {
         FfxFsr4V07AssetSet assets{};
         if (!ffxFsr4V07BuildAssetSet(ModelPreset(preset), ow, oh, &assets)) {
             Fail("output size is not supported by the v07 model", true);
@@ -192,9 +193,11 @@ struct Fsr4Upscaler::Impl {
 
         ffxCreateContextDescUpscale desc{};
         desc.header.type = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE;
-        desc.flags = FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE | FFX_UPSCALE_ENABLE_AUTO_EXPOSURE;
+        // HDR input with auto exposure for linear scene colour; none for a tonemapped frame.
+        desc.flags = hdr ? FFX_UPSCALE_ENABLE_HIGH_DYNAMIC_RANGE | FFX_UPSCALE_ENABLE_AUTO_EXPOSURE : 0;
         if (inverted) desc.flags |= FFX_UPSCALE_ENABLE_DEPTH_INVERTED;
         depth_inverted = inverted;
+        hdr_input = hdr;
         // Any preset's render size fits: the context is not recreated for a size change.
         desc.maxRenderSize = {(ow + 7) & ~7u, (oh + 7) & ~7u};
         desc.maxUpscaleSize = {(ow + 7) & ~7u, (oh + 7) & ~7u};
@@ -209,8 +212,9 @@ struct Fsr4Upscaler::Impl {
         model = preset;
         out_width = ow;
         out_height = oh;
-        std::printf("Upscaler: FSR 4 v07 INT8 %s model, %s tier, output %ux%u\n",
-                    ffxFsr4ModelPresetName(ModelPreset(preset)), assets.tier, ow, oh);
+        std::printf("Upscaler: FSR 4 v07 INT8 %s model, %s tier, output %ux%u, %s input\n",
+                    ffxFsr4ModelPresetName(ModelPreset(preset)), assets.tier, ow, oh,
+                    hdr ? "HDR" : "display-range");
         return true;
     }
 
@@ -297,9 +301,10 @@ struct Fsr4Upscaler::Impl {
         }
         const int preset = std::clamp(f.preset, 0, Fsr4Upscaler::DynamicPreset);
         if (!context_ok || preset != model || f.output.width != out_width ||
-            f.output.height != out_height || f.depth_inverted != depth_inverted) {
+            f.output.height != out_height || f.depth_inverted != depth_inverted ||
+            f.hdr != hdr_input) {
             Destroy(true);
-            if (!CreateBackend(preset, f.output.width, f.output.height, f.depth_inverted)) {
+            if (!CreateBackend(preset, f.output.width, f.output.height, f.depth_inverted, f.hdr)) {
                 Destroy(true);
                 return false;
             }
@@ -367,7 +372,7 @@ struct Fsr4Upscaler::Impl {
         d.upscaleSize = {f.output.width, f.output.height};
         d.enableSharpening = f.sharpen && f.sharpness > 0.0f;
         d.sharpness = f.sharpness;
-        d.enableAutoExposure = f.auto_exposure;
+        d.enableAutoExposure = f.auto_exposure && f.hdr;
         d.frameTimeDelta = f.frame_ms;
         d.preExposure = 1.0f;
         d.reset = f.reset;
