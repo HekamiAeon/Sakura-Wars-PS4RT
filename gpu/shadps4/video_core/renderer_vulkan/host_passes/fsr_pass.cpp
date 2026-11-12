@@ -205,7 +205,10 @@ vk::ImageView FsrPass::Render(vk::CommandBuffer cmdbuf, vk::ImageView input,
     FSRConstants consts{};
     FsrEasuCon(reinterpret_cast<AU1*>(&consts.Const0), reinterpret_cast<AU1*>(&consts.Const1),
                reinterpret_cast<AU1*>(&consts.Const2), reinterpret_cast<AU1*>(&consts.Const3),
-               static_cast<AF1>(input_size.width), static_cast<AF1>(input_size.height),
+               static_cast<AF1>(settings.input_viewport.width ? settings.input_viewport.width
+                                                              : input_size.width),
+               static_cast<AF1>(settings.input_viewport.height ? settings.input_viewport.height
+                                                               : input_size.height),
                static_cast<AF1>(input_size.width), static_cast<AF1>(input_size.height), (AF1)width,
                (AF1)height);
     consts.Sample[0] = hdr && !settings.use_rcas ? 1 : 0;
@@ -216,7 +219,7 @@ vk::ImageView FsrPass::Render(vk::CommandBuffer cmdbuf, vk::ImageView input,
             std::array<vk::DescriptorImageInfo, 3> img_info{{
                 {
                     .imageView = input,
-                    .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                    .imageLayout = settings.input_layout,
                 },
                 {
                     .imageView = img.intermediary_image_view.get(),
@@ -336,7 +339,7 @@ vk::ImageView FsrPass::Render(vk::CommandBuffer cmdbuf, vk::ImageView input,
         std::array<vk::DescriptorImageInfo, 3> img_info{{
             {
                 .imageView = input,
-                .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+                .imageLayout = settings.input_layout,
             },
             {
                 .imageView = img.output_image_view.get(),
@@ -397,6 +400,7 @@ vk::ImageView FsrPass::Render(vk::CommandBuffer cmdbuf, vk::ImageView input,
         cmdbuf.endDebugUtilsLabelEXT();
     }
 
+    last_output = img.output_image;
     return img.output_image_view.get();
 }
 

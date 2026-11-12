@@ -396,6 +396,7 @@ const char* UpscalerLabel(int upscaler) {
     case Ps4RtSettings::UpscalerFsr411: return "FSR 4.1.1";
     case Ps4RtSettings::UpscalerTaa: return "TAA";
     case Ps4RtSettings::UpscalerDlss: return "DLSS";
+    case Ps4RtSettings::UpscalerFsr1: return "FSR 1";
     default: return "";
     }
 }
@@ -559,22 +560,25 @@ void CompactGraphics() {
                   nullptr, Ps4RtGraphics::DisplayModeCount,
                   "Windowed, borderless window or fullscreen. Applies immediately.");
         CheckRow("FPS counter", s.show_fps, "Shows the frame rate in a corner of the screen. Applies live.");
-        static const char* const providers[] = {"Off / Original", "FSR 3.1", "FSR 4 v07"};
+        static const char* const providers[] = {"Off / Original", "FSR 1", "FSR 3.1", "FSR 4 v07"};
         static constexpr int provider_values[] = {Ps4RtSettings::UpscalerOff,
-            Ps4RtSettings::UpscalerFsr3, Ps4RtSettings::UpscalerFsr4};
+            Ps4RtSettings::UpscalerFsr1, Ps4RtSettings::UpscalerFsr3, Ps4RtSettings::UpscalerFsr4};
         // Commit the provider together with its required motion/jitter settings.
         std::atomic<int> provider{s.upscaler.load()};
         // The footnote also carries any reason FSR cannot run right now.
         static std::string upscaler_help;
-        upscaler_help = "FSR reconstructs the scene before the HUD. Off uses the original "
-                        "image with ordinary display scaling. Applies live.";
+        upscaler_help = "FSR reconstructs the scene before the HUD. FSR 1 is the light one for "
+                        "weak GPUs: it upscales each frame on its own (no anti-aliasing, best with "
+                        "the game's own on). FSR 3.1 and 4 rebuild the image over several frames "
+                        "(smoother edges, heavier). Off uses the original image with ordinary "
+                        "display scaling. Applies live.";
         if (s.upscaler != Ps4RtSettings::UpscalerOff)
             if (const char* problem = s.temporal_problem.load()) upscaler_help += std::string(" ") + problem;
         if (!s.fsr4_supported)
             upscaler_help += " FSR 4 v07 requires GPU features unavailable on this device. FSR 3.1 remains available.";
         if (const char* problem = s.fsr4_problem.load()) upscaler_help += std::string(" ") + problem;
         ChoiceRow("Upscaling / anti-aliasing", provider, providers, provider_values,
-                  s.fsr4_supported ? 3 : 2, upscaler_help.c_str());
+                  s.fsr4_supported ? 4 : 3, upscaler_help.c_str());
         if (provider != s.upscaler)
             Ps4RtSettings::SetSceneUpscaler(provider, false);
         const bool temporal = s.upscaler != Ps4RtSettings::UpscalerOff;

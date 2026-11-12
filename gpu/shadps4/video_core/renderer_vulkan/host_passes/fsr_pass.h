@@ -18,12 +18,20 @@ public:
         float rcas_attenuation{0.25f};
         bool anti_aliasing{false};
         bool srgb_input{false};
+        /// ps4rt: the part of the input holding the image (0 = all of it), and the input's
+        /// layout while it is sampled.
+        vk::Extent2D input_viewport{};
+        vk::ImageLayout input_layout{vk::ImageLayout::eShaderReadOnlyOptimal};
     };
 
     void Create(vk::Device device, VmaAllocator allocator, u32 num_images);
 
     vk::ImageView Render(vk::CommandBuffer cmdbuf, vk::ImageView input, vk::Extent2D input_size,
                          vk::Extent2D output_size, Settings settings, bool hdr);
+    /// ps4rt: the image behind the view the last upscaling Render returned (ShaderReadOnlyOptimal).
+    vk::Image LastOutputImage() const {
+        return last_output;
+    }
 
 private:
     struct Img {
@@ -59,6 +67,7 @@ private:
 
     vk::Extent2D cur_size{};
     u32 cur_image{};
+    vk::Image last_output{};
     std::vector<Img> available_imgs;
 };
 
