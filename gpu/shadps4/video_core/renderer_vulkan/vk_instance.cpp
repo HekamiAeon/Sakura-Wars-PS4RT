@@ -18,6 +18,7 @@
 #include "video_core/renderer_vulkan/vk_amd_paths.h"
 #include "video_core/renderer_vulkan/vk_dlss.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
+#include "video_core/renderer_vulkan/vk_pipeline_binary_policy.h"
 #include "video_core/renderer_vulkan/vk_platform.h"
 
 #include <vk_mem_alloc.h>
@@ -222,18 +223,16 @@ std::string Instance::GetDriverVersionName() {
     return GetReadableVersion(version);
 }
 
-namespace {
-bool PipelineBinaryCacheRequested() {
-    const char* setting = std::getenv("PS4RT_PIPELINE_BINARIES");
-    return !setting || *setting != '0';
-}
-}
-
-bool InitializePipelineBinaryCache(vk::Device device, bool supported,
+bool InitializePipelineBinaryCache(vk::Device device, PipelineBinaryChoice choice, bool supported,
                                    vk::PipelineBinaryKeyKHR& global_key) {
     global_key = vk::PipelineBinaryKeyKHR{};
-    if (!PipelineBinaryCacheRequested()) {
+    if (choice == PipelineBinaryChoice::OffBySetting) {
         LOG_INFO(Render_Vulkan, "Pipeline binary cache disabled by settings; using normal compilation");
+        return false;
+    }
+    // ps4rt: NVIDIA crashed here for players; off there unless PS4RT_PIPELINE_BINARIES forces it.
+    if (choice == PipelineBinaryChoice::OffOnNvidia) {
+        LOG_INFO(Render_Vulkan, "Pipeline binary cache off on NVIDIA; using normal compilation");
         return false;
     }
     if (!supported) {
@@ -332,7 +331,10 @@ bool Instance::CreateDevice() {
 
     // Optional
     maintenance_5 = add_extension(VK_KHR_MAINTENANCE_5_EXTENSION_NAME);
-    pipeline_binaries = PipelineBinaryCacheRequested() && maintenance_5 &&
+    // ps4rt: off on NVIDIA by default (vk_pipeline_binary_policy.h): the extension stays disabled.
+    const PipelineBinaryChoice binary_choice =
+        ChoosePipelineBinaries(std::getenv("PS4RT_PIPELINE_BINARIES"), properties.vendorID);
+    pipeline_binaries = binary_choice == PipelineBinaryChoice::On && maintenance_5 &&
         feature_chain.get<vk::PhysicalDeviceMaintenance5FeaturesKHR>().maintenance5 &&
         feature_chain.get<vk::PhysicalDevicePipelineBinaryFeaturesKHR>().pipelineBinaries &&
         add_extension(VK_KHR_PIPELINE_BINARY_EXTENSION_NAME);
@@ -752,8 +754,14 @@ bool Instance::CreateDevice() {
     device = std::move(dev);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(*device);
-    pipeline_binaries =
-        InitializePipelineBinaryCache(*device, pipeline_binaries, pipeline_binary_global_key);
+    pipeline_binaries = InitializePipelineBinaryCache(*device, binary_choice, pipeline_binaries,
+                                                      pipeline_binary_global_key);
+    std::printf("GPU: pipeline binary cache %s\n",
+                pipeline_binaries ? "on"
+                : binary_choice == PipelineBinaryChoice::OffOnNvidia
+                    ? "off on NVIDIA (PS4RT_PIPELINE_BINARIES=1 turns it on)"
+                : binary_choice == PipelineBinaryChoice::OffBySetting ? "off (PS4RT_PIPELINE_BINARIES=0)"
+                                                                       : "unavailable on this driver");
     if (Dlss* dlss = Dlss::Get()) {
         dlss->Initialize(*instance, physical_device, *device);
     }
