@@ -142,6 +142,8 @@ void Set(Values& v, const std::string& key, const std::string& value) {
 
 } // namespace
 
+static_assert(Ps4RtGraphics::Borderless == 1, "Values::display_mode defaults to borderless");
+
 Values& Get() {
     static Values values;
     return values;

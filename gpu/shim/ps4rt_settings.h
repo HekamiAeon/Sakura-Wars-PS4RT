@@ -72,7 +72,8 @@ struct Values {
     std::atomic<int> overlay_scale{100}, overlay_corner{1}, overlay_opacity{50}, overlay_layout{0};
     std::atomic<int> menu_tab{0};
     // Graphics (ps4rt_graphics.h). Live: applied on the next frame.
-    std::atomic<int> display_mode{0};
+    /// Ps4RtGraphics::DisplayMode; a first launch (no display_mode= in ps4rt.ini) is borderless.
+    std::atomic<int> display_mode{1};
     std::atomic<bool> vsync{true};
     std::atomic<int> fps_limit{0};
     std::atomic<bool> async_shaders{false};

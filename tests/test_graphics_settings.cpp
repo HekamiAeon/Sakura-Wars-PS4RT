@@ -10,17 +10,32 @@
 
 int main() {
     using namespace Ps4RtSettings;
+    namespace G = Ps4RtGraphics;
     char path[] = "/tmp/ps4rt-scene-settings-XXXXXX";
     const int fd = mkstemp(path);
     assert(fd >= 0);
     close(fd);
     setenv("PS4RT_CONFIG", path, 1);
     for (const char* key : {"PS4RT_UPSCALER", "PS4RT_OUTPUT_RES", "PS4RT_RCAS",
-                            "PS4RT_OBJECT_MOTION", "PS4RT_JITTER"}) unsetenv(key);
+                            "PS4RT_OBJECT_MOTION", "PS4RT_JITTER", "PS4RT_FSR_SHARPNESS",
+                            "PS4RT_ANISOTROPY", "PS4RT_FRAMERATE", "PS4RT_GRAPHICS_PRESET",
+                            "PS4RT_FULLSCREEN"}) unsetenv(key);
     // This launch's Internal resolution (ps4rt_launch.py from the ini; fixed for the run).
     setenv("PS4RT_INTERNAL_RES", "1280x720", 1);
     auto& s = Get();
     Load();
+    // First launch (empty ps4rt.ini): 1080p internal, borderless, FSR off, no FPS counter, the
+    // game's own anisotropic filtering, 30 FPS, native outlines, the Max preset, no sharpening.
+    // (English is the launcher's default console language: tests/test_game_language.py.)
+    assert(s.render_resolution == 0 && G::ResolutionWidths[0] == 1920 && G::ResolutionHeights[0] == 1080);
+    assert(s.display_mode == G::Borderless);
+    assert(s.upscaler == UpscalerOff && s.output_res == OutputNative);
+    assert(!s.show_fps);
+    assert(s.anisotropy == 0 && s.startup_anisotropy == 0);
+    assert(s.framerate == 30);
+    assert(s.outlines == 0);
+    assert(s.graphics_preset == 0);
+    assert(!s.sharpen && s.sharpness == 0.0f && !s.rcas);
     assert(s.native_scene && s.CompactGraphicsMenu());
     assert(s.upscaler == UpscalerOff && s.output_res == OutputDefault);
     assert(!s.object_motion && !s.jitter && !s.rcas && s.temporal_problem);
