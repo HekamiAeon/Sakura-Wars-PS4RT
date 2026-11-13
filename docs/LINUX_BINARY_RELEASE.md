@@ -1,16 +1,16 @@
-# Run the Sakura Wars PS4RT Linux x86-64 release (v1.1)
+# Run the Sakura Wars PS4RT Linux x86-64 release (v1.2)
 
 **For players: download the portable Linux runtime, extract it, and point the launcher at your own game. No compilation, separate PKG extractor, or manual FFmpeg/SDL3 installation is required.**
 
 ## 1. Download the right file
 
-Open the [Sakura Wars PS4RT v1.1 GitHub release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1)
+Open the [Sakura Wars PS4RT v1.2 GitHub release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.2)
 (or [the latest release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/latest)). Download:
 
-- **[Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz)**: prebuilt Linux runtime. **Choose this to play.**
-- [Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz.sha256](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz.sha256): SHA256 verification file for the runtime.
-- [Sakura-Wars-PS4RT-29f8822-source.tar.gz](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-source.tar.gz): matching source code for developers, **not required just to play**.
-- [Sakura-Wars-PS4RT-29f8822-source.tar.gz.sha256](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-source.tar.gz.sha256): SHA256 verification file for the source archive.
+- **[Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz)**: prebuilt Linux runtime. **Choose this to play.**
+- [Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz.sha256](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz.sha256): SHA256 verification file for the runtime.
+- [Sakura-Wars-PS4RT-b45cfaa-source.tar.gz](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-source.tar.gz): matching source code for developers, **not required just to play**.
+- [Sakura-Wars-PS4RT-b45cfaa-source.tar.gz.sha256](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-source.tar.gz.sha256): SHA256 verification file for the source archive.
 
 These are the four uploaded release assets. GitHub's automatic “Source code”
 ZIP/tarball links are different from the matching source package above.
@@ -19,7 +19,7 @@ To verify your runtime download, save the Linux `.tar.gz` and its `.sha256`
 in the same directory and run:
 
 ```bash
-sha256sum -c Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz.sha256
+sha256sum -c Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz.sha256
 ```
 
 It should report `OK`.
@@ -46,8 +46,8 @@ Extract the Linux archive using your file manager, or in the directory
 containing the downloaded runtime:
 
 ```bash
-tar -xzf Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz
-cd Sakura-Wars-PS4RT-29f8822-linux-x86_64
+tar -xzf Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz
+cd Sakura-Wars-PS4RT-b45cfaa-linux-x86_64
 bash Play-Game.sh --game "/path/to/CUSA16429"
 ```
 

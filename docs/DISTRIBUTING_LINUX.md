@@ -4,31 +4,25 @@ This guide covers the **Sakura Wars PS4RT** Linux source and portable runtime re
 
 **The release contains no PS4 game data, firmware, update/DLC PKGs, decryption keys, or saved games.** Players provide their own extracted, plaintext CUSA16429 directory and, when necessary, a matching v1.01 update PKG.
 
-**Published v1.1 versus current source:** The download instructions below
-refer to the existing v1.1 release. The repository now also implements local
-achievements, a restart-required game-language dropdown, experimental
-ultrawide/internal-resolution controls, and FSR 1. These changes have **not
-yet been packaged into a new player release**. Do not attribute them to v1.1.
-
 ## For players: download, extract, run
 
-**Do not compile from source just to play v1.1.** Download the prebuilt
-[Linux x86-64 runtime archive](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz) from the
-[official v1.1 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1)
+**Do not compile from source just to play v1.2.** Download the prebuilt
+[Linux x86-64 runtime archive](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz) from the
+[official v1.2 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.2)
 (or visit [the latest release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/latest)).
-Choose **`Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz`**, not the source archive.
-Download its [SHA256 checksum](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz.sha256) alongside it.
+Choose **`Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz`**, not the source archive.
+Download its [SHA256 checksum](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz.sha256) alongside it.
 
 Developers can download the separate
-[matching source archive](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-source.tar.gz) and
-[source checksum](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-source.tar.gz.sha256).
+[matching source archive](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-source.tar.gz) and
+[source checksum](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-source.tar.gz.sha256).
 
 From the folder containing your downloads, verify, extract, and launch:
 
 ```bash
-sha256sum -c Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz.sha256
-tar -xzf Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz
-cd Sakura-Wars-PS4RT-29f8822-linux-x86_64
+sha256sum -c Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz.sha256
+tar -xzf Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz
+cd Sakura-Wars-PS4RT-b45cfaa-linux-x86_64
 bash Play-Game.sh --game "/path/to/CUSA16429"
 ```
 
@@ -90,7 +84,7 @@ A host-native development build is **not** the standard redistributable bundle: 
 3. Run `bash packaging/linux/build-release.sh` from the committed source root. It stages the private build under `~/Documents/PS4RT-Builds/<repository-name>/` and produces **four files** under `~/Documents/PS4RT-Releases/<repository-name>/`: the versioned Linux runtime `.tar.gz`, its `.sha256`, the matching source `.tar.gz`, and its `.sha256`.
 4. Validate both checksums and inspect the archive contents for proprietary/private material. Verify the release's embedded source revision, x86-64 ELF architecture, `$ORIGIN` RUNPATHs, glibc baseline, linked dependencies and corresponding-source availability. Verify the archive and exact launcher on a clean host where feasible.
 5. Smoke-test a **freshly extracted portable** against a disposable copy of pristine v1.00: update picker, successful v1.01 installation, optional DLC selection and skip, first-boot save creation, game startup, save/load and prompt-free restart. Separately test already-v1.01 startup and duplicate/overlay DLC handling. Do not use development saves as a shortcut. For the next release, also validate achievements, language changes on restart, 16:9 and experimental ultrawide rendering, and FSR Off / FSR 1 / FSR 3.1 / FSR 4 v07 on supported hardware.
-6. Publish the four assets together under a versioned GitHub Release on [Sakura Wars PS4RT](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases). The current [v1.1 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1) includes the [Linux runtime](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz), its [checksum](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz.sha256), the [matching source archive](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-source.tar.gz), and its [checksum](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-source.tar.gz.sha256). The [superseded v1.0 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.0) remains for rollback. For future releases, keep asset filenames and manifests tied to their own committed release SHA and verify the downloaded checksums.
+6. Publish the four assets together under a versioned GitHub Release on [Sakura Wars PS4RT](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases). The current [v1.2 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.2) includes the [Linux runtime](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz), its [checksum](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz.sha256), the [matching source archive](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-source.tar.gz), and its [checksum](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.2/Sakura-Wars-PS4RT-b45cfaa-source.tar.gz.sha256). The [superseded v1.0 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.0) remains for rollback. For future releases, keep asset filenames and manifests tied to their own committed release SHA and verify the downloaded checksums.
 
 The packager uses a restricted source export and a checked runtime file manifest. It bundles the Linux `ps4rt`, `ps4rt-setup` graphical UI and native `ps4rt-pkg` extractor, plus audited runtime libraries and licensed graphics resources. No PS4 binaries or developer-local artifacts belong in public archives.
 

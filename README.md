@@ -26,7 +26,7 @@ with Sega, Sony, or AMD.
 PS4RT or install FFmpeg, SDL3, Crypto++, or other bundled application
 libraries.**
 
-1. **Download v1.1:** Use the [Sakura Wars PS4RT v1.1 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1) (also the [latest release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/latest)). Download **`Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz`** to play; the `source` archive is for developers. The superseded v1.0 release remains available for rollback.
+1. **Download v1.2:** Use the [Sakura Wars PS4RT v1.2 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.2) (also the [latest release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/latest)). Download **`Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz`** to play; the `source` archive is for developers. The superseded v1.0 release remains available for rollback.
 2. **Have your own extracted PS4 game:** The launcher needs a plaintext **`CUSA16429` folder** containing `sce_sys/param.sfo`, `eboot.bin`, `sce_module/`, and the game's data. Point to **the CUSA16429 folder itself**, not a PKG, its parent folder, or `eboot.bin`. Version **1.00 or 1.01** may be supplied; **v1.01 is required to play**.
 3. **Extract the downloaded archive** using your file manager. Open a terminal inside its extracted folder.
 4. **Launch** with the path to your extracted `CUSA16429` folder:

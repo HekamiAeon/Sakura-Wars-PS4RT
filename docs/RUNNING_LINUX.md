@@ -1,10 +1,10 @@
 # Running Sakura Wars PS4RT on Linux
 
-Sakura Wars PS4RT is an experimental, game-specific x86-64 Linux compatibility runtime for **CUSA16429 v1.01**. No game files are distributed. Players should use the prebuilt [v1.1 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1); compiling from source is for developers.
+Sakura Wars PS4RT is an experimental, game-specific x86-64 Linux compatibility runtime for **CUSA16429 v1.01**. No game files are distributed. Players should use the prebuilt [v1.2 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.2); compiling from source is for developers.
 
 ## 1. Download and run the portable
 
-1. Download **`Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz`** from the [v1.1 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1), not the source archive. Extract it into a writable directory.
+1. Download **`Sakura-Wars-PS4RT-b45cfaa-linux-x86_64.tar.gz`** from the [v1.2 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.2), not the source archive. Extract it into a writable directory.
 2. Provide your own extracted, plaintext **`CUSA16429`** directory containing `eboot.bin`, `sce_sys/param.sfo`, `sce_module/` and game data. Point to that directory itself, not the PKG, its parent, or the executable.
 3. Open a terminal inside the extracted player directory and run:
 
