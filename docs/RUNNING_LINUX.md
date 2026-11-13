@@ -28,12 +28,6 @@ FSR 4 requires compatible Vulkan GPU features, including INT8 dot-product suppor
 bash Play-Game.sh --upscaler fsr4 --output-resolution 4k
 ```
 
-**Achievements:** The overlay's **Achievements** page (switch with L1 / R1 or Q / E) lists the game's trophies with icons, hidden entries, progress and unlock dates. The game itself triggers each unlock; PS4RT saves it locally, shows a short notification and keeps it across restarts. It is not PSN synchronization, and trophies earned before this feature are not imported. Japanese, Korean and Chinese trophy text uses an installed Noto Sans CJK font when available.
-
-**Game language:** The overlay's **Game language** row changes the emulated PS4 system language, which the game reads when it starts. This EU v1.01 build has text in English, French, German and Spanish. Pick one and use **Apply and restart**; the choice is kept in `out/CUSA16429/user/console.ini` and stays until you change it. Without a choice the game starts in English, as before. Your saves are not modified. For a single scripted launch, `PS4RT_LANGUAGE=<PS4 language ID>` overrides it without changing the stored choice.
-
-**Screenshots:** **F12** saves the game image, without the overlay, to `out/CUSA16429/user/gpu/screenshots/`.
-
 For later DLC installation, use **Game > Install DLC...** in the overlay with your own compatible PKGs. New DLC loads after a restart. **Save your game before using Restart Game** or quitting, since graphics settings and game progress are saved separately.
 
 ## 3. Settings, saves, and private data
@@ -43,9 +37,6 @@ Keep the extracted player directory together and writable. Generated files and p
 - `out/CUSA16429/game-folder.txt`: remembered game directory.
 - `out/CUSA16429/ps4rt.ini`: graphics settings.
 - `out/CUSA16429/user/savedata/`: game saves.
-- `out/CUSA16429/user/achievements/`: local achievement unlocks and the trophy text/icon catalog.
-- `out/CUSA16429/user/console.ini`: the emulated console's language (Game language).
-- `out/CUSA16429/user/gpu/screenshots/`: F12 screenshots.
 - `out/CUSA16429/user/gpu/cache/`: shader/pipeline caches; deleting a cache forces recompilation.
 - `out/CUSA16429/player-content/dlc/`: optional installed DLC.
 

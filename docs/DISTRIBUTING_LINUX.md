@@ -48,7 +48,6 @@ In game, open the PS4RT settings overlay with **Insert** or **L2 + R3 click**. O
 | `out/CUSA16429/boot-linked.bin`, `content.bin` and related files | Prepared or linked game-derived content |
 | `out/CUSA16429/ps4rt.ini` | Local graphics settings |
 | `out/CUSA16429/user/savedata/` | Game save data |
-| `out/CUSA16429/user/achievements/` | Local achievement unlocks and a trophy text/icon catalog derived from the player's game |
 | `out/CUSA16429/user/gpu/cache/` | Shader and pipeline caches |
 | `out/CUSA16429/player-content/dlc/` | Optional DLC installed from player-supplied PKGs |
 | `dlc/CUSA16429/` (if present) | Optional pre-extracted add-ons |

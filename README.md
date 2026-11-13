@@ -149,20 +149,6 @@ verified. Please report reproducible issues, especially in later chapters.
   through the PS4RT launcher. This new PS4RT feature applies settings that
   require a restart and discovers newly installed DLC. **Save first**,
   because restarting does not automatically save your game.
-- **Local achievements:** The game's own trophy unlocks are saved locally
-  and shown in the overlay's **Achievements** page (L1 / R1 or Q / E switches
-  pages), with icons, grades, hidden entries, unlock dates and progress, plus a
-  short notification when one unlocks. This is **not PSN trophy
-  synchronization**. Trophies earned before this feature are not imported;
-  the game may award some again as you play.
-- **Game language:** The overlay's **Game language** row sets the language
-  the emulated PS4 reports to the game, like changing the console's system
-  language. This EU v1.01 game has text in **English, French, German and
-  Spanish**; these are the choices. Choose one, then **Apply and restart**;
-  the game starts in that language from then on. Trophy text follows it.
-  Saves are not changed. Japanese text is not part of this version.
-- **Screenshots:** **F12** saves the game image (without the overlay) to
-  `out/CUSA16429/user/gpu/screenshots/`.
 - Other overlay options include display mode, VSync, and performance
   information.
 
@@ -253,9 +239,6 @@ Notable paths:
 - `out/CUSA16429/ps4rt.ini`: saved graphics settings.
 - `out/CUSA16429/user/savedata/`: user save data.
 - `out/CUSA16429/user/savedata-backups/`: save backups, when present.
-- `out/CUSA16429/user/achievements/`: local achievement unlocks and the
-  trophy text/icon catalog read from your game's `sce_sys` files.
-- `out/CUSA16429/user/console.ini`: the emulated console's language.
 - `out/CUSA16429/user/gpu/cache/CUSA16429/`: GPU shader/pipeline caches,
   when present.
 - `out/CUSA16429/player-content/dlc/`: DLC installed using the PS4RT
@@ -280,8 +263,6 @@ from:
   renderer and shader-recompiler contributors.
 - [AzaharPlus/shadPS4Plus](https://github.com/AzaharPlus/shadPS4Plus),
   source of the adapted native PKG/PFS extraction code.
-- [DiamondDogz/Sakura-Wars-PS4RT-Windows](https://github.com/DiamondDogz/Sakura-Wars-PS4RT-Windows),
-  source of the adapted trophy metadata routines used for local achievements.
 
 Development used [REA: Reverse Engineer Anything](https://github.com/morluto/rea)
 and [Ghidra](https://github.com/NationalSecurityAgency/ghidra) as
