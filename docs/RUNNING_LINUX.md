@@ -65,12 +65,8 @@ Progress is saved locally and **not synchronized with PSN**. Previously
 completed objectives might not unlock retroactively.
 
 FSR 4 requires compatible Vulkan GPU features, including INT8 dot-product
-support; use **FSR 3.1, FSR 1, or Off** on unsupported hardware. Launch-time
-graphics overrides are optional:
-
-```bash
-bash Play-Game.sh --upscaler fsr4 --output-resolution 4k
-```
+support; use **FSR 3.1, FSR 1, or Off** on unsupported hardware. Choose
+internal resolution, FSR output, and upscaler through the in-game overlay.
 
 For later DLC installation, use **Game > Install DLC...** in the overlay with your own compatible PKGs. New DLC loads after a restart. **Save your game before using Restart Game** or quitting, since graphics settings and game progress are saved separately.
 
