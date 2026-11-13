@@ -183,7 +183,8 @@ def _achievements(title_id: str, game: Path, user_dir: Path, env: dict) -> None:
     """
     from trophy_catalog import prepare_catalog, trophy_language
     env.pop('PS4RT_TROPHY_CATALOG', None)
-    env['PS4RT_ACHIEVEMENTS_DIR'] = str(user_dir / 'achievements')
+    # Crowbar's test profile gives its own folder: the real achievements stay untouched.
+    env['PS4RT_ACHIEVEMENTS_DIR'] = env.get('PS4RT_ACHIEVEMENTS_DIR') or str(user_dir / 'achievements')
     try:
         language = int(env.get('PS4RT_LANGUAGE', '1'))
         language = trophy_language(title_id, user_dir, language)

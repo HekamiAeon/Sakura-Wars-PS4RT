@@ -405,6 +405,13 @@ static int hold_after_capture;
 static void sample(PadData *d) {
     sample_host(d);
     if (ps4rtgpu_overlay_captures_input()) { hold_after_capture=1; click.side=-1; return; }
+    /* Paused from Crowbar's Guide: the controller drives Crowbar's menu, not the game; the button
+     * that resumed the game stays hidden until released (crowbar-sdk 1.2, SPEC section 4). */
+    if (runtime_pause_active()) {
+        hold_after_capture=1; click.side=-1;
+        d->buttons=0; d->left_x=d->left_y=d->right_x=d->right_y=0x80; d->l2=d->r2=0;
+        return;
+    }
     record_sample(d); /* the click sources as they are: a replay plays them again */
     read_inject();
     replay_sample(d);
