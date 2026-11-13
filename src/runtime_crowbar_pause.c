@@ -11,6 +11,10 @@
  * so the game does not see the pause as a long frame. Without PS4RT_CONTROL_DIR nothing runs. */
 #define _GNU_SOURCE
 #include "runtime.h"
+#ifdef _WIN32
+#include <windows.h>
+#endif
+#include <unistd.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,6 +84,15 @@ static void set_paused(int on) {
     pthread_mutex_unlock(&pause_lock);
 }
 
+/* Exit code 0 without running the libraries' exit code (it can wait on threads the game holds). */
+static void runtime_crowbar_quit(void) {
+    fflush(NULL);
+#ifdef _WIN32
+    TerminateProcess(GetCurrentProcess(), 0);
+#endif
+    _exit(0);
+}
+
 static void *watch(void *unused) {
     (void)unused;
     long last = 0;
@@ -108,6 +121,11 @@ static void *watch(void *unused) {
         } else if (!strcmp(word, "unlock")) {
             /* Crowbar's test profile: a trophy unlocked as if the game had (crowbar-sdk 1.3). */
             write_state(seq, runtime_crowbar_unlock(arg) == 0 ? "unlocked" : "refused");
+        } else if (!strcmp(word, "quit")) {
+            /* The player quit from Crowbar (crowbar-sdk 1.4): trophy state is already on disk,
+             * the game's saves are its own. Leave at once with code 0. */
+            write_state(seq, "quitting");
+            runtime_crowbar_quit();
         }
     }
     return NULL;
