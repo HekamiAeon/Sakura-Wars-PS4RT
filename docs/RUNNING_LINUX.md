@@ -2,11 +2,6 @@
 
 Sakura Wars PS4RT is an experimental, game-specific x86-64 Linux compatibility runtime for **CUSA16429 v1.01**. No game files are distributed. Players should use the prebuilt [v1.1 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1); compiling from source is for developers.
 
-**Release note:** This guide also documents features added to current source
-after the published v1.1 player archive. Local achievements, game-language
-selection, FSR 1, and ultrawide/internal-resolution controls will be included
-in a subsequent player release; do not expect them from the v1.1 download.
-
 ## 1. Download and run the portable
 
 1. Download **`Sakura-Wars-PS4RT-29f8822-linux-x86_64.tar.gz`** from the [v1.1 release](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/tag/v1.1), not the source archive. Extract it into a writable directory.
@@ -17,7 +12,7 @@ in a subsequent player release; do not expect them from the v1.1 download.
 bash Play-Game.sh --game "/absolute/path/to/CUSA16429"
 ```
 
-**Later launches:** After successful preparation, run `bash Play-Game.sh` alone. The player remembers the validated path in `out/CUSA16429/game-folder.txt`. Use `--game` again if you move the extraction or select another copy. With no configured path, the launcher prints a first-launch command and points to `PLAYER_README.txt`. No graphical folder picker or Tkinter installation is required.
+**Later launches:** After successful preparation, run `bash Play-Game.sh` alone. The player remembers the validated path in `out/CUSA16429/game-folder.txt`. Use `--game` again if you move the extraction or select another copy. With no configured path, the launcher prints a first-launch command and points to `PLAYER_README.txt`.
 
 **Game version:** An extracted v1.01 game starts normal preparation. An extracted v1.00 game requires your own matching v1.01 update PKG through the included native setup tool. **The update modifies the selected extracted CUSA16429 directory in place. Back up pristine v1.00 if you need to preserve it.** After a successful fresh update, optional DLC setup can be skipped or completed; the launcher then restarts into v1.01. An already updated v1.01 game does not repeat update/DLC prompts. See [Player update and DLC setup](PLAYER_PKG_SETUP.md).
 
@@ -62,7 +57,7 @@ text follows the selected console language.
 **Local achievements:** The game triggers trophy unlocks; the **Achievements**
 tab shows local progress, icons, hidden entries, unlock dates and notifications.
 Progress is saved locally and **not synchronized with PSN**. Previously
-completed objectives might not unlock retroactively.
+completed objectives will not unlock retroactively.
 
 FSR 4 requires compatible Vulkan GPU features, including INT8 dot-product
 support; use **FSR 3.1, FSR 1, or Off** on unsupported hardware. Choose
@@ -78,7 +73,7 @@ Keep the extracted player directory together and writable. Generated files and p
 - `out/CUSA16429/ps4rt.ini`: graphics settings.
 - `out/CUSA16429/user/savedata/`: game saves.
 - `out/CUSA16429/user/achievements/`: locally earned trophy state and
-  generated catalog (never PSN synced).
+  generated catalog.
 - `out/CUSA16429/user/gpu/cache/`: shader/pipeline caches; deleting a cache forces recompilation.
 - `out/CUSA16429/player-content/dlc/`: optional installed DLC.
 
