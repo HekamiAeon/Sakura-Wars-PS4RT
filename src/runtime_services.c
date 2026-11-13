@@ -604,11 +604,25 @@ static ABI int32_t trophy_context(int32_t *ctx,int32_t user,uint32_t label,uint6
     return ps4rt_trophy_create_context(ctx,user,label,options);
 }
 static ABI int32_t trophy_handle(int32_t *handle) { return ps4rt_trophy_create_handle(handle); }
+/* The game's registered trophy context and handle, for an unlock asked by Crowbar (crowbar-sdk 1.3,
+ * "unlock" in PS4RT_CONTROL_DIR): it then goes through trophy_unlock like the game's own. */
+static int32_t crowbar_ctx=-1, crowbar_handle=-1;
 static ABI int32_t trophy_register(int32_t ctx,int32_t handle,uint64_t options) {
-    return ps4rt_trophy_register(ctx,handle,options);
+    int32_t r=ps4rt_trophy_register(ctx,handle,options);
+    if (r==0) { __atomic_store_n(&crowbar_handle,handle,__ATOMIC_RELEASE); __atomic_store_n(&crowbar_ctx,ctx,__ATOMIC_RELEASE); }
+    return r;
 }
 static ABI int32_t trophy_unlock(int32_t ctx,int32_t handle,int32_t id,int32_t *platinum) {
     return ps4rt_trophy_unlock(ctx,handle,id,platinum);
+}
+/* 0 when trophy id is now unlocked (or already was), -1 before the game registered its trophies. */
+int runtime_crowbar_unlock(int id) {
+    int32_t ctx=__atomic_load_n(&crowbar_ctx,__ATOMIC_ACQUIRE), handle=__atomic_load_n(&crowbar_handle,__ATOMIC_ACQUIRE);
+    if (ctx<0 || handle<0 || id<0 || id>127) return -1;
+    int32_t platinum=-1;
+    int32_t r=trophy_unlock(ctx,handle,id,&platinum);
+    printf("Crowbar: trophy %d unlocked on request (0x%x)\n",id,(unsigned)r);
+    return (r==0 || (uint32_t)r==0x8055160cu) ? 0 : -1; /* 0x8055160c: already unlocked */
 }
 static ABI int32_t trophy_game_info(int32_t ctx,int32_t handle,void *details,void *data) {
     return ps4rt_trophy_game_info(ctx,handle,details,data);

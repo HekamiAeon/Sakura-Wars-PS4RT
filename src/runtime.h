@@ -16,6 +16,8 @@ extern __thread sigjmp_buf *runtime_fault_recover;
 /* Restarts the game (in-game settings menu, render resolution change). */
 void runtime_restart(void);
 /* runtime_crowbar_pause.c: pause from Crowbar's Guide (PS4RT_CONTROL_DIR) */
+/* runtime_services.c: unlock a trophy through the game's own context (Crowbar test profile). */
+int runtime_crowbar_unlock(int id);
 int runtime_pause_gate(void);
 int runtime_pause_active(void);
 uint64_t runtime_pause_offset_ns(void);

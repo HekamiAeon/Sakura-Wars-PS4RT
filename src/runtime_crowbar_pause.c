@@ -92,9 +92,10 @@ static void *watch(void *unused) {
         if (!in) continue;
         long seq = 0;
         char word[16] = {0};
-        int got = fscanf(in, "%ld %15s", &seq, word);
+        int arg = -1;
+        int got = fscanf(in, "%ld %15s %d", &seq, word, &arg);
         fclose(in);
-        if (got != 2 || seq <= last) continue;
+        if (got < 2 || seq <= last) continue;
         last = seq;
         if (!strcmp(word, "pause")) {
             uint64_t movie = __atomic_load_n(&last_movie_frame_ns, __ATOMIC_ACQUIRE);
@@ -104,6 +105,9 @@ static void *watch(void *unused) {
         } else if (!strcmp(word, "resume")) {
             set_paused(0);
             write_state(seq, "running");
+        } else if (!strcmp(word, "unlock")) {
+            /* Crowbar's test profile: a trophy unlocked as if the game had (crowbar-sdk 1.3). */
+            write_state(seq, runtime_crowbar_unlock(arg) == 0 ? "unlocked" : "refused");
         }
     }
     return NULL;
