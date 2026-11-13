@@ -12,8 +12,6 @@ Open the [Sakura Wars PS4RT v1.1 GitHub release](https://github.com/HekamiAeon/S
 - [Sakura-Wars-PS4RT-29f8822-source.tar.gz](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-source.tar.gz): matching source code for developers, **not required just to play**.
 - [Sakura-Wars-PS4RT-29f8822-source.tar.gz.sha256](https://github.com/HekamiAeon/Sakura-Wars-PS4RT/releases/download/v1.1/Sakura-Wars-PS4RT-29f8822-source.tar.gz.sha256): SHA256 verification file for the source archive.
 
-The superseded v1.0 release remains available for rollback.
-
 These are the four uploaded release assets. GitHub's automatic “Source code”
 ZIP/tarball links are different from the matching source package above.
 
@@ -68,12 +66,6 @@ Replace the quoted path with the location of **your own extracted game folder**.
 
 The portable bundles its own graphical installer and native PKG extractor. No Tkinter, KDialog, Zenity, or external `ps4-pkg` installation is needed. See [Player update and DLC setup](PLAYER_PKG_SETUP.md) for troubleshooting and the exact DLC workflow.
 
-## 4. In-game controls and graphics
-
-Open the PS4RT menu using **Insert** on a keyboard or **L2 + R3 click** on a controller. Navigate with the D-pad, Cross to select, and Circle to go back (typical Xbox-style controllers use A/B equivalents).
-
-The menu includes **1080p / 1440p / 4K** output, **Off / FSR 3.1 / FSR 4 v07** upscaling where supported, sharpening, anisotropic filtering, display/VSync controls, silhouette/outline options, and **30 / experimental 60 FPS**. In v1.1, the live **Graphics preset** options are **Max (original)**, **High**, **Medium**, and **Lowest**. High turns off contact shadows and bloom; Medium further reduces anti-aliasing, depth-of-field, motion-blur and character-shadow costs; Lowest disables additional effects including anti-aliasing, outlines and depth of field. Reduced presets can alter the appearance of some effects. Anisotropic filtering requires a game restart. 4K output does not mean the original scene is rasterized natively at 4K.
-
 Optional command-line overrides are available:
 
 ```bash
@@ -88,5 +80,3 @@ After installing DLC from **Game > Install DLC...** in the overlay, save your ga
 - Working Vulkan 1.3-capable graphics driver/loader and compatible desktop display/input environment. FSR 4 depends on additional compatible device features and falls back to other supported options when unavailable.
 - Fedora Linux with AMD/RADV/NVIDIA graphics has been gameplay-tested.
 - The portable bundles its audited application libraries, including SDL3, FFmpeg and Crypto++. **Do not install separate versions or set `LD_LIBRARY_PATH` merely to run the portable.**
-
-This is an **experimental, title-specific** PS4 native compatibility runtime, not a general PS4 emulator. Testing has reached Chapters 1–3; the full game has **not** been verified end-to-end as of the v1.1 release. For developer instructions, see [Linux distribution guide](DISTRIBUTING_LINUX.md), [Running on Linux](RUNNING_LINUX.md), and [`packaging/linux/README.md`](../packaging/linux/README.md).
