@@ -84,12 +84,9 @@ D-pad to navigate, Cross to confirm, and Circle to go back. Choose output
 output**, upscaling (**Off, FSR 1, FSR 3.1, or FSR 4 v07**, where supported),
 sharpening, anisotropic filtering, and the Sakura-specific options below.
 
-**You do NOT need to specify graphics settings at launch.** If preferred,
-you can start with FSR 4 and 4K output using optional overrides:
-
-```bash
-bash Play-Game.sh --game "/path/to/CUSA16429" --upscaler fsr4 --output-resolution 4k
-```
+**No graphics flags are needed at launch.** Select internal resolution,
+FSR output, and upscaler in the PS4RT overlay; choices are saved for future
+launches.
 
 **Internal resolution and FSR output are separate settings.** The game's scene
 can render at 1024×576 (low-end "540p"), 1280×720, 1920×1080, 2560×1440,
