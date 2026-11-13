@@ -1,6 +1,9 @@
 """Static packaging safeguards for the portable player and source exporter."""
 from pathlib import Path
 import importlib.util
+import re
+import shutil
+import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -62,6 +65,61 @@ class ReleaseLayoutTests(unittest.TestCase):
                      'docs/THIRD_PARTY_REVIEW.md',
                      'gpu/assets/private-background.png'):
             self.assertFalse(release.source_allowed(name), name)
+
+    def test_source_requires_credits_and_license_but_not_the_readme(self):
+        self.assertIn('LICENSE', release.REQUIRED)
+        self.assertIn('docs/UPSTREAM_CREDITS.md', release.REQUIRED)
+        self.assertNotIn('README.md', release.REQUIRED)
+
+
+def git(*args):
+    return subprocess.run(['git', '-C', str(ROOT), *args], capture_output=True, check=True).stdout
+
+
+def export_ignored(paths):
+    """Whether this checkout's .gitattributes leaves each path out of `git archive`."""
+    fields = git('check-attr', '-z', 'export-ignore', '--', *paths).split(b'\0')
+    return {fields[i].decode(): fields[i + 2] == b'set' for i in range(0, len(fields) - 2, 3)}
+
+
+def tracked(*paths):
+    return [p.decode() for p in git('ls-files', '-z', '--', *paths).split(b'\0') if p]
+
+
+# Project documentation: kept out of source archives, except the credits and docs/licenses/.
+PROJECT_DOCS = ('README.md', 'docs', 'packaging/linux/README.md')
+
+
+def project_doc(path):
+    return path in PROJECT_DOCS or path.startswith('docs/')
+
+
+@unittest.skipUnless(shutil.which('git') and (ROOT / '.git').exists(), 'needs a Git checkout')
+class SourceArchiveDocsPolicyTests(unittest.TestCase):
+    """Project docs stay out of GitHub's generated archives and the release.py source export
+    (both use git archive), so they can change after a release is built."""
+
+    def test_player_docs_are_left_out_of_source_archives(self):
+        docs = [p for p in tracked(*PROJECT_DOCS)
+                if p != 'docs/UPSTREAM_CREDITS.md' and not p.startswith('docs/licenses/')]
+        self.assertIn('README.md', docs)
+        self.assertIn('packaging/linux/README.md', docs)
+        for path, ignored in export_ignored(docs).items():
+            self.assertTrue(ignored, path)
+
+    def test_credits_licenses_and_notices_stay_in_source_archives(self):
+        notice = re.compile(r'(^|/)(license|notice|copying|readme)[^/]*$', re.IGNORECASE)
+        keep = ['docs/UPSTREAM_CREDITS.md', 'docs/licenses', 'docs/licenses/GPL-3.0.txt',
+                'docs/licenses/nested/NOTICE.txt',
+                *(p for p in tracked() if notice.search(p) and not project_doc(p))]
+        self.assertIn('LICENSE', keep)
+        self.assertIn('third_party/ps4pkg/README.md', keep)
+        for path, ignored in export_ignored(keep).items():
+            self.assertFalse(ignored, path)
+
+    def test_required_source_is_never_left_out(self):
+        for path, ignored in export_ignored(sorted(release.REQUIRED)).items():
+            self.assertFalse(ignored, path)
 
 
 if __name__ == '__main__':

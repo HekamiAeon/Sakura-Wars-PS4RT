@@ -19,6 +19,10 @@ ROOT = Path(__file__).resolve().parents[2]
 ROOT_FILES = {'README.md', 'LICENSE', 'build.sh', 'run.sh', '.gitignore', '.gitattributes'}
 ROOT_DIRS = {'src', 'gpu', 'scripts', 'third_party', 'tests', 'tools', 'packaging',
              'fsr4_shaders', 'patches'}
+# Documentation this allowlist permits. Which of it reaches an archive is decided by the
+# export-ignore rules in .gitattributes (git archive applies them): project docs (README, docs/,
+# the builder guide) stay out so they can change after a release, credits and docs/licenses/
+# stay in.
 PUBLIC_DOCS = {'docs/RUNNING_LINUX.md', 'docs/DISTRIBUTING_LINUX.md',
                'docs/UPSTREAM_CREDITS.md', 'docs/LINUX_BINARY_RELEASE.md',
                'docs/PLAYER_PKG_SETUP.md'}
@@ -60,7 +64,9 @@ FSR4_MANIFESTS = {
     f'fsr4_shaders/fsr4_model_v07_i8_{preset}_shader_manifest.json'
     for preset in ('native', 'quality', 'balanced', 'performance', 'ultraperf', 'drs')
 }
-REQUIRED = PLAYER | {'build.sh', 'gpu/CMakeLists.txt', 'README.md', 'LICENSE'}
+# README.md is not required: .gitattributes keeps project docs out of source archives.
+# The credits and the license must be in every source archive.
+REQUIRED = PLAYER | {'build.sh', 'gpu/CMakeLists.txt', 'LICENSE', 'docs/UPSTREAM_CREDITS.md'}
 
 
 def fail(message):
