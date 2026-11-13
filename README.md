@@ -71,12 +71,18 @@ If an update is interrupted, relaunch and select the **same v1.01 update
 PKG** to recover the installation. See [Player update and DLC setup](docs/PLAYER_PKG_SETUP.md)
 for details and advanced command-line options.
 
+**Current source vs. published v1.1:** The features documented below include
+changes added after the v1.1 player archive: local achievements, a game-language
+dropdown, internal-resolution and ultrawide options, and FSR 1. Those newer
+features are **not yet included in the published v1.1 download**. A new portable
+release will be packaged separately after development and verification.
+
 **Graphics are controlled in-game.** Hold **L2** and click the right stick
 (**R3**) to open PS4RT settings, or press **Insert** on a keyboard. Use the
 D-pad to navigate, Cross to confirm, and Circle to go back. Choose output
-resolution (1080p, 1440p, 4K), upscaling (Off, FSR 3.1, or FSR 4 v07 where
-supported), sharpening, anisotropic filtering, and the Sakura-specific
-options described below.
+**Internal resolution** (16:9 or experimental ultrawide), **FSR Upscale
+output**, upscaling (**Off, FSR 1, FSR 3.1, or FSR 4 v07**, where supported),
+sharpening, anisotropic filtering, and the Sakura-specific options below.
 
 **You do NOT need to specify graphics settings at launch.** If preferred,
 you can start with FSR 4 and 4K output using optional overrides:
@@ -84,6 +90,16 @@ you can start with FSR 4 and 4K output using optional overrides:
 ```bash
 bash Play-Game.sh --game "/path/to/CUSA16429" --upscaler fsr4 --output-resolution 4k
 ```
+
+**Internal resolution and FSR output are separate settings.** The game's scene
+can render at 1024×576 (low-end "540p"), 1280×720, 1920×1080, 2560×1440,
+or 3840×2160, plus experimental **21:9, 24:9, and 32:9** modes up to
+5120×1440. **Changing internal resolution requires restarting.** FSR output
+is selected separately, within the same aspect-ratio family; choosing a
+higher output does not change how many pixels the game renders internally.
+FSR 1 is lightweight spatial upscaling without temporal anti-aliasing; FSR 3.1
+and FSR 4 v07 use temporal reconstruction. FSR and its output selection apply
+live where supported.
 
 **Changing anisotropic filtering (AF) requires restarting the game.**
 Use **Restart Game** in the PS4RT overlay after saving progress.
@@ -113,9 +129,13 @@ verified. Please report reproducible issues, especially in later chapters.
 
 - SDL-compatible gamepads, including DualSense and XInput, plus keyboard
   controls.
-- **1080p, 1440p, and 4K output**, with **FSR 3.1**, optional **FSR 4 v07**,
-  and sharpening. Higher output resolutions use upscaling/reconstruction;
-  this is not a claim of native 4K game rendering.
+- **Internal resolution:** 1024×576, 720p, 1080p, 1440p, and native 4K,
+  plus experimental **21:9 (2560×1080, 3440×1440), 24:9 (3840×1440),
+  and 32:9 (3840×1080, 5120×1440)**. A change requires restarting the game.
+- **FSR Upscale output:** Select the output separately from internal resolution;
+  only compatible same-aspect outputs are offered. Upscaling options are **Off,
+  FSR 1, FSR 3.1, and FSR 4 v07** (GPU support permitting). Higher output
+  resolutions do not necessarily mean the scene is rendered at that size.
 - **Graphics presets (v1.1):** **Max (original)** preserves the game's effects; **High** disables contact shadows and bloom. **Medium** additionally switches SMAA to FXAA, reduces depth-of-field resolution and dash motion-blur sampling, and disables character screen-space shadows. **Lowest** also disables anti-aliasing, outlines, and depth of field. The presets apply live, though some battle effects may look different.
 - **Anisotropic filtering:** Game default, 2×, 4×, 8×, or 16×. AF is separate
   from anti-aliasing and requires restarting the game.
@@ -149,19 +169,33 @@ verified. Please report reproducible issues, especially in later chapters.
   through the PS4RT launcher. This new PS4RT feature applies settings that
   require a restart and discovers newly installed DLC. **Save first**,
   because restarting does not automatically save your game.
+- **Local achievements:** Game-triggered trophies are saved locally and shown
+  in the **Achievements** tab with icons, progress, hidden entries, unlock
+  timestamps, and notifications. These are **not synced with PSN**; objectives
+  completed before the feature was added may not unlock retroactively.
+- **Game language:** An overlay dropdown switches the emulated console language
+  between **English, French, German, and Spanish** on **Apply and restart**.
+  The EU v1.01 build does not offer Japanese text. The setting also controls
+  trophy-text localization; it does not edit existing game saves.
+- **Ultrawide:** The 21:9, 24:9, and 32:9 modes widen the rendered scene but
+  remain **experimental**. Some HUD, dialogue, and cutscene elements may retain
+  16:9 layout assumptions. Return to 16:9 when investigating visual defects.
 - Other overlay options include display mode, VSync, and performance
   information.
 
-FSR 3.1 is available in the runtime. FSR 4 v07 assets and their license
-notice are included under `fsr4_shaders/`. FSR 4 requires appropriate
-Vulkan GPU features, including INT8 dot-product support; unsupported
-hardware can use FSR 3.1 instead. These assets are upscaler dependencies,
-not shaders extracted from the game.
+FSR 1 (spatial) and FSR 3.1 (temporal) are available in the runtime. FSR 4
+v07 assets and their license notice are included under `fsr4_shaders/`.
+FSR 4 requires appropriate Vulkan GPU features, including INT8 dot-product
+support; unsupported hardware can use **FSR 3.1, FSR 1, or Off** instead.
+These assets are upscaler dependencies, not shaders extracted from the game.
 
 ### Known limitations and bug reports
 
 - **Chapters 4 onward are not fully verified.** Treat the optional 60 FPS
   patch as experimental outside the tested Chapters 1–3.
+- **Ultrawide is experimental:** HUD markers, dialogue UI, 2D screens, and
+  cinematics may need 16:9 framing. Test the same scene at 16:9 with FSR Off
+  before reporting a regression.
 - **Native shimmering:** Some wall, fixture, and other surface-edge shimmer
   is part of Sakura Wars' own presentation. The Outlines setting offers a
   visual trade-off; it is not a renderer repair.
@@ -239,6 +273,8 @@ Notable paths:
 - `out/CUSA16429/ps4rt.ini`: saved graphics settings.
 - `out/CUSA16429/user/savedata/`: user save data.
 - `out/CUSA16429/user/savedata-backups/`: save backups, when present.
+- `out/CUSA16429/user/achievements/`: local unlock state and generated trophy
+  catalog; no PSN synchronization.
 - `out/CUSA16429/user/gpu/cache/CUSA16429/`: GPU shader/pipeline caches,
   when present.
 - `out/CUSA16429/player-content/dlc/`: DLC installed using the PS4RT
