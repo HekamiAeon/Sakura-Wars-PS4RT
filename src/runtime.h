@@ -15,6 +15,11 @@ typedef ps4rt_jmp_buf sigjmp_buf;
 extern __thread sigjmp_buf *runtime_fault_recover;
 /* Restarts the game (in-game settings menu, render resolution change). */
 void runtime_restart(void);
+/* runtime_crowbar_pause.c: pause from Crowbar's Guide (PS4RT_CONTROL_DIR) */
+int runtime_pause_gate(void);
+int runtime_pause_active(void);
+uint64_t runtime_pause_offset_ns(void);
+void runtime_pause_movie_frame(void);
 #define ABI __attribute__((sysv_abi))
 typedef void (ABI *GuestCallback)(void);
 void runtime_start(uint64_t capabilities);

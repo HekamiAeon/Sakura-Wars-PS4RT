@@ -140,6 +140,7 @@ static int32_t check(Ctrl *ctrl, FrameBuffer *buffer, PictureInfo *info) {
     return 0;
 }
 static ABI int32_t videodec_decode(Ctrl *ctrl, const InputData *input, FrameBuffer *buffer, PictureInfo *info) {
+    runtime_pause_movie_frame(); /* a movie is playing: no pause from Crowbar's Guide now */
     if (!input) return ERR_ARGUMENT_POINTER;
     int32_t r=check(ctrl,buffer,info);
     if (r) return r;

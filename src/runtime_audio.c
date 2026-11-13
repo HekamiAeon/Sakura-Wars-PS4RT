@@ -170,6 +170,8 @@ static ABI int32_t audio_close(int32_t handle) {
 /* `pace`: wait for this port's next period. sceAudioOutOutputs waits once for all its ports. */
 static int32_t output_port(int32_t handle, const void *data, int pace) {
     int32_t error=0;
+    /* Paused from Crowbar's Guide: the device plays silence; the cadence restarts after (stall). */
+    runtime_pause_gate();
     pthread_mutex_lock(&table_lock);
     Port *p=port_of(handle,&error);
     pthread_mutex_unlock(&table_lock);

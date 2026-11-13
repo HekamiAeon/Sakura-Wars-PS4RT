@@ -166,7 +166,10 @@ s32 PS4_SYSV_ABI sceVideoOutIsFlipPending(s32 handle) {
     return pending;
 }
 
+extern "C" int runtime_pause_gate(void); // runtime_crowbar_pause.c: pause from Crowbar's Guide
+
 s32 PS4_SYSV_ABI sceVideoOutSubmitFlip(s32 handle, s32 bufferIndex, s32 flipMode, s64 flipArg) {
+    runtime_pause_gate();
     ApplyGameFramerate();
     auto* port = driver->GetPort(handle);
     if (!port) {
