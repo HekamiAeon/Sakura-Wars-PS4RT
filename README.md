@@ -1,6 +1,6 @@
 # Sakura Wars (PS4, CUSA16429): PS4RT for PC Linux Port
 
-An experimental, game-specific Linux compatibility runtime for **Sakura Wars**
+A game-specific Linux compatibility runtime for **Sakura Wars**
 (PlayStation 4, **CUSA16429 v1.01**), tested on **Fedora Linux, x86-64**.
 
 PS4RT prepares and runs the game's original x86-64 code on a Linux host, supplies
@@ -71,22 +71,12 @@ If an update is interrupted, relaunch and select the **same v1.01 update
 PKG** to recover the installation. See [Player update and DLC setup](docs/PLAYER_PKG_SETUP.md)
 for details and advanced command-line options.
 
-**Current source vs. published v1.1:** The features documented below include
-changes added after the v1.1 player archive: local achievements, a game-language
-dropdown, internal-resolution and ultrawide options, and FSR 1. Those newer
-features are **not yet included in the published v1.1 download**. A new portable
-release will be packaged separately after development and verification.
-
 **Graphics are controlled in-game.** Hold **L2** and click the right stick
 (**R3**) to open PS4RT settings, or press **Insert** on a keyboard. Use the
 D-pad to navigate, Cross to confirm, and Circle to go back. Choose output
 **Internal resolution** (16:9 or experimental ultrawide), **FSR Upscale
 output**, upscaling (**Off, FSR 1, FSR 3.1, or FSR 4 v07**, where supported),
 sharpening, anisotropic filtering, and the Sakura-specific options below.
-
-**No graphics flags are needed at launch.** Select internal resolution,
-FSR output, and upscaler in the PS4RT overlay; choices are saved for future
-launches.
 
 **Internal resolution and FSR output are separate settings.** The game's scene
 can render at 1024×576 (low-end "540p"), 1280×720, 1920×1080, 2560×1440,
@@ -117,13 +107,6 @@ does **not** contain PS4 game files or firmware.
 
 ## Current status
 
-**Experimental and playable through Chapters 1–3; not a verified full
-playthrough.** Gameplay has been tested on Fedora with AMD/RADV graphics,
-including story progression, cinematics, menus, audio, controller input,
-combat, and saving/loading through **Chapter 3**. Chapters 4 onward and
-other hardware/distribution combinations have not been comprehensively
-verified. Please report reproducible issues, especially in later chapters.
-
 - SDL-compatible gamepads, including DualSense and XInput, plus keyboard
   controls.
 - **Internal resolution:** 1024×576, 720p, 1080p, 1440p, and native 4K,
@@ -147,11 +130,11 @@ verified. Please report reproducible issues, especially in later chapters.
   **Off** to disable outlines. This is an optional aesthetic preference,
   **not a workaround for a port-specific defect** and **not a performance
   optimization**. Some shimmer is inherent to the original presentation.
-- **60 FPS patch (experimental):** Sakura Wars does not provide a simple
+- **60 FPS patch:** Sakura Wars does not provide a simple
   framerate-unlock toggle. Its 30 FPS assumptions are spread throughout the
   game logic. PS4RT contains numerous game-specific fixes for movement,
-  timing, combat, and effects to make 60 FPS playable through the tested
-  **Chapters 1–3**. The mode is believed to be largely functional, but
+  timing, combat, and effects to make 60 FPS playable. 
+  The mode is believed to be largely functional, but
   chapters beyond those tested may still expose timing or visual defects.
   **30 FPS remains the default.** If something looks or behaves incorrectly
   at 60 FPS, reproduce it at **30 FPS** before reporting it, and mention
@@ -160,25 +143,19 @@ verified. Please report reproducible issues, especially in later chapters.
   native DLC PKG picker so you can install add-ons after the initial setup.
   The installer checks that the selected content belongs to CUSA16429,
   skips duplicates, and keeps installed DLC separate from the base game.
-  **Save and restart** after installing new DLC to make it available; there
-  is no hot-reloading into the running game.
 - **Restart Game:** Closes the current running game and launches it again
-  through the PS4RT launcher. This new PS4RT feature applies settings that
-  require a restart and discovers newly installed DLC. **Save first**,
-  because restarting does not automatically save your game.
+  through the PS4RT launcher.
 - **Local achievements:** Game-triggered trophies are saved locally and shown
   in the **Achievements** tab with icons, progress, hidden entries, unlock
   timestamps, and notifications. These are **not synced with PSN**; objectives
-  completed before the feature was added may not unlock retroactively.
-- **Game language:** An overlay dropdown switches the emulated console language
-  between **English, French, German, and Spanish** on **Apply and restart**.
-  The EU v1.01 build does not offer Japanese text. The setting also controls
-  trophy-text localization; it does not edit existing game saves.
+  completed before the feature was added will not unlock retroactively.
+- **Game language:** An overlay dropdown switches the game language
+  between **English, French, German, and Spanish**. The setting also controls
+  trophy-text localization.
 - **Ultrawide:** The 21:9, 24:9, and 32:9 modes widen the rendered scene but
   remain **experimental**. Some HUD, dialogue, and cutscene elements may retain
   16:9 layout assumptions. Return to 16:9 when investigating visual defects.
-- Other overlay options include display mode, VSync, and performance
-  information.
+
 
 FSR 1 (spatial) and FSR 3.1 (temporal) are available in the runtime. FSR 4
 v07 assets and their license notice are included under `fsr4_shaders/`.
@@ -188,11 +165,7 @@ These assets are upscaler dependencies, not shaders extracted from the game.
 
 ### Known limitations and bug reports
 
-- **Chapters 4 onward are not fully verified.** Treat the optional 60 FPS
-  patch as experimental outside the tested Chapters 1–3.
-- **Ultrawide is experimental:** HUD markers, dialogue UI, 2D screens, and
-  cinematics may need 16:9 framing. Test the same scene at 16:9 with FSR Off
-  before reporting a regression.
+- **Chapters 5 onward are not fully verified.**
 - **Native shimmering:** Some wall, fixture, and other surface-edge shimmer
   is part of Sakura Wars' own presentation. The Outlines setting offers a
   visual trade-off; it is not a renderer repair.
@@ -271,7 +244,7 @@ Notable paths:
 - `out/CUSA16429/user/savedata/`: user save data.
 - `out/CUSA16429/user/savedata-backups/`: save backups, when present.
 - `out/CUSA16429/user/achievements/`: local unlock state and generated trophy
-  catalog; no PSN synchronization.
+  catalog.
 - `out/CUSA16429/user/gpu/cache/CUSA16429/`: GPU shader/pipeline caches,
   when present.
 - `out/CUSA16429/player-content/dlc/`: DLC installed using the PS4RT
