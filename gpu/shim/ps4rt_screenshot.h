@@ -8,9 +8,7 @@ namespace Ps4RtScreenshot {
 /// Any thread: save the next presented game frame (F12).
 void Request();
 
-/// Present thread: the number of screenshots requested since the last call. Also honours the
-/// automation trigger: when PS4RT_SCREENSHOT_TRIGGER names a file, each time that file exists it
-/// is removed and counts as one request (scripted QA without capturing the desktop).
+/// Present thread: the number of screenshots requested since the last call.
 unsigned Consume();
 
 } // namespace Ps4RtScreenshot

@@ -397,25 +397,13 @@ bool ParseSize(const char* text, int& width, int& height) {
     return true;
 }
 
-// An engine option ("--renderres_x=2560") in PS4RT_GUEST_ARGS, else 0.
-int GuestArg(const char* name) {
-    const char* args = std::getenv("PS4RT_GUEST_ARGS");
-    const char* at = args ? std::strstr(args, name) : nullptr;
-    return at ? std::atoi(at + std::strlen(name)) : 0;
-}
-
 } // namespace
 
 void SceneSize(int& width, int& height) {
     // The environment is fixed for a run; the presenter asks every frame.
     static const std::pair<int, int> size = [] {
         int w = 1920, h = 1080;
-        if (!ParseSize(std::getenv("PS4RT_INTERNAL_RES"), w, h)) {
-            // Manual runs that pass the engine options directly.
-            const int gw = GuestArg("--renderres_x=") ? GuestArg("--renderres_x=") : GuestArg("--res_x=");
-            const int gh = GuestArg("--renderres_y=") ? GuestArg("--renderres_y=") : GuestArg("--res_y=");
-            if (gw >= 640 && gw <= 8192 && gh >= 360 && gh <= 8192) w = gw, h = gh;
-        }
+        ParseSize(std::getenv("PS4RT_INTERNAL_RES"), w, h);
         return std::pair<int, int>{w, h};
     }();
     width = size.first;
@@ -426,10 +414,7 @@ void GameDisplaySize(int& width, int& height) {
     static const std::pair<int, int> size = [] {
         int w = 1920, h = 1080;
         // The Internal resolution: src/loader.c gives the engine the same --res as --renderres.
-        if (!ParseSize(std::getenv("PS4RT_INTERNAL_RES"), w, h)) {
-            const int gw = GuestArg("--res_x="), gh = GuestArg("--res_y=");
-            if (gw >= 640 && gw <= 8192 && gh >= 360 && gh <= 8192) w = gw, h = gh;
-        }
+        ParseSize(std::getenv("PS4RT_INTERNAL_RES"), w, h);
         return std::pair<int, int>{w, h};
     }();
     width = size.first;

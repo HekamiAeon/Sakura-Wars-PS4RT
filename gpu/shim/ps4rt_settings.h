@@ -35,10 +35,10 @@ inline constexpr int OutputDefault = OutputNative;
 /// inexact pair). Native always.
 bool OutputAllowed(int internal_width, int internal_height, int output);
 /// The scene size this launch renders at: PS4RT_INTERNAL_RES (the launcher, from the menu's
-/// Internal resolution), else the engine options in PS4RT_GUEST_ARGS, else 1920x1080.
+/// Internal resolution), else 1920x1080.
 void SceneSize(int& width, int& height);
 /// The game's display buffer size this launch (the engine's --res): the scene size for the
-/// Internal resolution (src/loader.c), else the engine options in PS4RT_GUEST_ARGS.
+/// Internal resolution (src/loader.c), else 1920x1080.
 void GameDisplaySize(int& width, int& height);
 /// The FSR output (live): output_res fitted to the scene aspect (never stretched),
 /// or the scene size for Native or a choice that does not fit this internal resolution.

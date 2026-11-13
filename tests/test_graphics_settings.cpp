@@ -16,7 +16,7 @@ int main() {
     close(fd);
     setenv("PS4RT_CONFIG", path, 1);
     for (const char* key : {"PS4RT_UPSCALER", "PS4RT_OUTPUT_RES", "PS4RT_RCAS",
-                            "PS4RT_OBJECT_MOTION", "PS4RT_JITTER", "PS4RT_GUEST_ARGS"}) unsetenv(key);
+                            "PS4RT_OBJECT_MOTION", "PS4RT_JITTER"}) unsetenv(key);
     // This launch's Internal resolution (ps4rt_launch.py from the ini; fixed for the run).
     setenv("PS4RT_INTERNAL_RES", "1280x720", 1);
     auto& s = Get();

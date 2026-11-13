@@ -2,8 +2,6 @@
 #include "ps4rt_screenshot.h"
 
 #include <atomic>
-#include <cstdio>
-#include <cstdlib>
 
 namespace Ps4RtScreenshot {
 
@@ -16,13 +14,6 @@ void Request() {
 }
 
 unsigned Consume() {
-    static const char* const trigger = [] {
-        const char* path = std::getenv("PS4RT_SCREENSHOT_TRIGGER");
-        return path && *path ? path : nullptr;
-    }();
-    if (trigger && std::remove(trigger) == 0) {
-        Request();
-    }
     return requests.exchange(0, std::memory_order_acq_rel);
 }
 

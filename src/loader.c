@@ -490,11 +490,10 @@ static int internal_resolution(unsigned *w, unsigned *h) {
     return 1;
 }
 
-/* A resolution other than the game's own: the Internal resolution, or explicit engine options
- * in PS4RT_GUEST_ARGS with PS4RT_EXPERIMENT_RT_GROWTH (testing). */
+/* A resolution other than the game's own: the Internal resolution. */
 static int resolution_mode(void) {
     unsigned w, h;
-    return internal_resolution(&w,&h) || getenv("PS4RT_EXPERIMENT_RT_GROWTH")!=NULL;
+    return internal_resolution(&w,&h);
 }
 
 static int cpu_supported(char *missing, size_t size) {
@@ -884,17 +883,9 @@ int main(int argc, char **argv) {
         if (!resolution_mode()) protect(image+round_page(size)+stub_area,page_size,5);
     }
     if (resolution_mode()) {
-        /* The render size: the Internal resolution, else the engine's own --renderres or --res
-         * arguments. */
+        /* The render size: the Internal resolution. */
         unsigned rw=0, rh=0;
-        const char *ga=getenv("PS4RT_GUEST_ARGS");
-        if (!internal_resolution(&rw,&rh) && ga) {
-            const char *q;
-            if ((q=strstr(ga,"--renderres_x="))) rw=(unsigned)strtoul(q+14,NULL,10);
-            else if ((q=strstr(ga,"--res_x="))) rw=(unsigned)strtoul(q+8,NULL,10);
-            if ((q=strstr(ga,"--renderres_y="))) rh=(unsigned)strtoul(q+14,NULL,10);
-            else if ((q=strstr(ga,"--res_y="))) rh=(unsigned)strtoul(q+8,NULL,10);
-        }
+        internal_resolution(&rw,&rh);
         /* World-anchored UI (NPC "..." bubbles, the Talk prompt) projects its
          * anchor with the authored 1920-wide UI size, so at 21:9 it lands at 0.75x the head's
          * offset. Each site's 5-byte width load becomes a call to a stub that loads
@@ -1063,27 +1054,14 @@ int main(int argc, char **argv) {
     }
     printf("Entering original x86-64 code at guest offset 0x%" PRIx64 "\n", entry);
     entered_game=1;
-    /* The game's argv: its path, then PS4RT_GUEST_ARGS split at spaces (the engine's own
-       command-line options, e.g. --res_x=2560; the launcher sets it for experimental modes). */
-    enum { MAX_GUEST_ARGS=16 };
-    struct { uint64_t argc; const char *argv[MAX_GUEST_ARGS+2]; } params = {1, {"/app0/eboot.bin", NULL}};
-    const char *guest_args=getenv("PS4RT_GUEST_ARGS");
-    if (guest_args && *guest_args) {
-        char *copy=strdup(guest_args), *save=NULL;
-        for (char *arg=copy?strtok_r(copy," ",&save):NULL; arg; arg=strtok_r(NULL," ",&save)) {
-            if (params.argc==MAX_GUEST_ARGS+1) { fprintf(stderr,"Runtime: PS4RT_GUEST_ARGS: ignoring arguments after %d\n",MAX_GUEST_ARGS); break; }
-            params.argv[params.argc++]=arg;
-        }
-        params.argv[params.argc]=NULL;
-    }
-    /* The Internal resolution through the engine's own options: --renderres is the 3D scene,
-     * --res the display buffer the HUD and 2D screens are drawn in, both the same size. A
-     * smaller scene than display is not scaled by the engine: it composes the scene 1:1 into
-     * the top-left corner of the display (tested at 1280x720 in 1920x1080). Explicit options
-     * in PS4RT_GUEST_ARGS win. */
+    /* The game's argv: its path, then the Internal resolution through the engine's own
+     * options: --renderres is the 3D scene, --res the display buffer the HUD and 2D screens are
+     * drawn in, both the same size. A smaller scene than display is not scaled by the engine: it
+     * composes the scene 1:1 into the top-left corner of the display (tested at 1280x720 in
+     * 1920x1080). */
+    struct { uint64_t argc; const char *argv[6]; } params = {1, {"/app0/eboot.bin", NULL}};
     unsigned iw, ih;
-    if (internal_resolution(&iw,&ih) && !(guest_args && strstr(guest_args,"--res")) &&
-        params.argc+4<=MAX_GUEST_ARGS+1) {
+    if (internal_resolution(&iw,&ih)) {
         static char options[4][32];
         const unsigned dw=iw, dh=ih;
         snprintf(options[0],sizeof(options[0]),"--res_x=%u",dw);
